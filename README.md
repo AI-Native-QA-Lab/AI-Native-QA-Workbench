@@ -13,6 +13,19 @@
 AI assists throughout the lifecycle. Evidence and traceability keep
 quality work reviewable; accountable decisions remain human-controlled.
 
+## Quick Start
+
+The current bootstrap slice creates and validates the local project contract:
+
+```bash
+pnpm install
+pnpm qaw init ./example-project
+pnpm qaw validate ./example-project
+```
+
+This release does not claim the later `doctor`, `open`, or AI analysis
+workflows; those remain in the roadmap.
+
 ## Why
 
 Most AI testing tools focus on test generation, browser automation, or
@@ -23,16 +36,16 @@ quality decisions.
 
 ## Core Principles
 
--   Local-first and file-first
--   Quality Domain First
--   Evidence before conclusion
--   Traceability by design
--   AI Assessment != Human Decision
--   Model agnostic
--   Human controlled
--   Three Loops architecture
--   Contract-first + TDD
--   English-first official documentation, with Chinese support
+- Local-first and file-first
+- Quality Domain First
+- Evidence before conclusion
+- Traceability by design
+- AI Assessment != Human Decision
+- Model agnostic
+- Human controlled
+- Three Loops architecture
+- Contract-first + TDD
+- English-first official documentation, with Chinese support
 
 ## MVP
 
@@ -45,18 +58,18 @@ LLM.
 
 ## Storage
 
--   Project quality source of truth: `.ai-qa/` using Markdown/YAML/JSON
--   Runtime state: local SQLite
--   Large evidence artifacts: local filesystem references
--   PostgreSQL: optional future Shared Workbench capability, not a v0.x
-    dependency
+- Project quality source of truth: `.ai-qa/` using Markdown/YAML/JSON
+- Runtime state: local SQLite
+- Large evidence artifacts: local filesystem references
+- PostgreSQL: optional future Shared Workbench capability, not a v0.x
+  dependency
 
 ## Documentation
 
--   English canonical docs: `docs/en/`
--   Chinese official docs: `docs/zh-CN/`
--   Chinese-first development docs: `docs/development/`
--   Architecture decisions: `docs/adr/`
+- English canonical docs: `docs/en/`
+- Chinese official docs: `docs/zh-CN/`
+- Chinese-first development docs: `docs/development/`
+- Architecture decisions: `docs/adr/`
 
 See [Project Blueprint](docs/en/PROJECT_BLUEPRINT.md) and
 [Roadmap](docs/en/ROADMAP.md).

@@ -3,10 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
-import {
-  FileProjectStore,
-  parseProjectFile,
-} from "@ai-native-qa-workbench/project-store";
+import { FileProjectStore, parseProjectFile } from "@ai-native-qa-workbench/project-store";
 
 const validYaml = [
   'schemaVersion: "0.1"',
@@ -84,7 +81,9 @@ ${validYaml}`);
   });
 
   it("reports unknown project keys", () => {
-    const result = parseProjectFile(validYaml.replace("  defaultLocale: en\n", "  defaultLocale: en\n  owner: team\n"));
+    const result = parseProjectFile(
+      validYaml.replace("  defaultLocale: en\n", "  defaultLocale: en\n  owner: team\n"),
+    );
 
     expect(result.diagnostics).toContainEqual({
       code: "PROJECT_UNKNOWN_KEY",

@@ -1,8 +1,4 @@
-import type {
-  DiagnosticCode,
-  Project,
-  ProjectLocale,
-} from "@ai-native-qa-workbench/domain";
+import type { DiagnosticCode, Project, ProjectLocale } from "@ai-native-qa-workbench/domain";
 
 export const PROJECT_FILE_RELATIVE_PATH = ".ai-qa/project.yaml";
 

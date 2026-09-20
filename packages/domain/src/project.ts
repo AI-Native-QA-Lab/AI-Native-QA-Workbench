@@ -65,9 +65,7 @@ export function validateProject(project: Project): ValidationResult {
   }
 
   if (typeof candidate.name !== "string" || candidate.name.trim().length === 0) {
-    diagnostics.push(
-      diagnostic("PROJECT_NAME_EMPTY", "name", "Project name must not be empty."),
-    );
+    diagnostics.push(diagnostic("PROJECT_NAME_EMPTY", "name", "Project name must not be empty."));
   }
 
   if (typeof candidate.description !== "string") {
@@ -82,11 +80,7 @@ export function validateProject(project: Project): ValidationResult {
 
   if (candidate.defaultLocale !== "en" && candidate.defaultLocale !== "zh-CN") {
     diagnostics.push(
-      diagnostic(
-        "PROJECT_LOCALE_INVALID",
-        "defaultLocale",
-        "Project locale must be en or zh-CN.",
-      ),
+      diagnostic("PROJECT_LOCALE_INVALID", "defaultLocale", "Project locale must be en or zh-CN."),
     );
   }
 

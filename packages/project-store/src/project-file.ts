@@ -27,11 +27,7 @@ const projectFileSchema = z
   })
   .strict();
 
-function diagnostic(
-  code: StoreDiagnostic["code"],
-  path: string,
-  message: string,
-): StoreDiagnostic {
+function diagnostic(code: StoreDiagnostic["code"], path: string, message: string): StoreDiagnostic {
   return {
     code,
     message,
@@ -43,9 +39,7 @@ function diagnostic(
 function malformed(message: string): StoreValidationResult {
   return {
     valid: false,
-    diagnostics: [
-      diagnostic("PROJECT_FILE_MALFORMED", PROJECT_FILE_RELATIVE_PATH, message),
-    ],
+    diagnostics: [diagnostic("PROJECT_FILE_MALFORMED", PROJECT_FILE_RELATIVE_PATH, message)],
   };
 }
 
@@ -76,15 +70,15 @@ function mapSchemaIssues(error: z.ZodError): StoreValidationResult {
     }
 
     const path = issue.path.join(".");
-    if (path === "project.name" && issue.code === "invalid_type" && issue.received === "undefined") {
+    if (
+      path === "project.name" &&
+      issue.code === "invalid_type" &&
+      issue.received === "undefined"
+    ) {
       return diagnostic("PROJECT_NAME_EMPTY", path, "Project name must not be empty.");
     }
 
-    return diagnostic(
-      "PROJECT_FILE_MALFORMED",
-      path || PROJECT_FILE_RELATIVE_PATH,
-      issue.message,
-    );
+    return diagnostic("PROJECT_FILE_MALFORMED", path || PROJECT_FILE_RELATIVE_PATH, issue.message);
   });
 
   return {

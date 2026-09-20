@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  deriveProjectId,
-  validateProject,
-  type Project,
-} from "@ai-native-qa-workbench/domain";
+import { deriveProjectId, validateProject, type Project } from "@ai-native-qa-workbench/domain";
 
 const validProject: Project = {
   schemaVersion: "0.1",

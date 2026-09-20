@@ -12,6 +12,19 @@
 AI 参与质量工程全过程，但重要结论需要 Evidence 与 Traceability
 支撑，有责任归属的质量决策由人类控制。
 
+## 快速开始
+
+当前启动切片只负责创建并校验本地项目契约：
+
+```bash
+pnpm install
+pnpm qaw init ./example-project
+pnpm qaw validate ./example-project
+```
+
+当前版本还没有声称实现 `doctor`、`open` 或 AI 分析流程；这些能力仍在
+Roadmap 中。
+
 ## MVP
 
 MVP 只验证一条真正的产品闭环：
@@ -22,9 +35,9 @@ MVP 只验证一条真正的产品闭环：
 
 ## Local-first
 
--   `.ai-qa/`：项目质量数据 Source of Truth
--   SQLite：本地 Agent/Workflow Runtime State
--   Filesystem：大型 Evidence Artifact
--   PostgreSQL：后续 Shared Workbench 可选能力，不是 v0.x 依赖
+- `.ai-qa/`：项目质量数据 Source of Truth
+- SQLite：本地 Agent/Workflow Runtime State
+- Filesystem：大型 Evidence Artifact
+- PostgreSQL：后续 Shared Workbench 可选能力，不是 v0.x 依赖
 
 完整方案见 [GitHub 项目完整方案](docs/zh-CN/PROJECT_BLUEPRINT.md)。

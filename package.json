@@ -10,8 +10,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"*.{js,json,ts,yaml,yml}\" \"apps/**/*.{js,json,ts,yaml,yml}\" \"packages/**/*.{js,json,ts,yaml,yml}\" \"scripts/**/*.{js,json,ts,yaml,yml}\" \"tests/**/*.{js,json,ts,yaml,yml}\" \".github/**/*.{js,json,ts,yaml,yml}\"",
+    "format:check": "prettier --check \"*.{js,json,ts,yaml,yml}\" \"apps/**/*.{js,json,ts,yaml,yml}\" \"packages/**/*.{js,json,ts,yaml,yml}\" \"scripts/**/*.{js,json,ts,yaml,yml}\" \"tests/**/*.{js,json,ts,yaml,yml}\" \".github/**/*.{js,json,ts,yaml,yml}\"",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
