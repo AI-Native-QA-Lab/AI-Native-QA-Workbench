@@ -146,11 +146,7 @@ export function validateTestObligation(obligation: TestObligation): ValidationRe
 
   if (!isValidKebabCaseId(candidate.riskId)) {
     diagnostics.push(
-      diagnostic(
-        "TEST_OBLIGATION_RISK_ID_INVALID",
-        "riskId",
-        "Test obligation riskId is invalid.",
-      ),
+      diagnostic("TEST_OBLIGATION_RISK_ID_INVALID", "riskId", "Test obligation riskId is invalid."),
     );
   }
 
