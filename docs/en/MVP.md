@@ -1,56 +1,61 @@
 # MVP --- v0.1
 
-## Goal
+## Current bootstrap status
 
-Prove that AI can assist a real quality-engineering workflow while
-project data remains local, traceable, reviewable, deterministic in CI,
-and human-controlled.
+The current v0.1 slice establishes a deterministic local foundation rather
+than the complete AI workflow.
 
-## Golden Path
+## Quick Start
 
-1.  Initialize a project with `qaw init`.
-2.  Create/load a Requirement.
-3.  Start a Requirement Analysis QualityTask.
-4.  Agent Execution Loop reads project context.
-5.  AI proposes Acceptance Criteria, Risks, Test Obligations and Test
-    Cases.
-6.  Workbench creates a ChangeProposal.
-7.  Human reviews all or selected changes.
-8.  Approved operations are validated and atomically written into
-    `.ai-qa/`.
-9.  Traceability is rebuilt.
+```bash
+pnpm install
+pnpm qaw init ./example-project
+pnpm qaw validate ./example-project
+```
+
+## Implemented
+
+- `.ai-qa/project.yaml` Project File Contract
+- Project domain validation and stable project ID derivation
+- Local file store with atomic initialization and overwrite protection
+- `qaw init` and `qaw validate`
+- Offline unit, contract, integration, architecture, and documentation
+  quality gates
+
+## Planned Golden Path
+
+1. Initialize a project with `qaw init`.
+2. Create/load a Requirement.
+3. Start a Requirement Analysis QualityTask.
+4. Agent Execution Loop reads project context.
+5. AI proposes Acceptance Criteria, Risks, Test Obligations and Test
+   Cases.
+6. Workbench creates a ChangeProposal.
+7. Human reviews all or selected changes.
+8. Approved operations are validated and atomically written into `.ai-qa/`.
+9. Traceability is rebuilt.
 10. Completion Contract validates the QA Task.
 11. `qaw validate` passes.
 12. `git diff .ai-qa/` clearly shows the quality changes.
 
-## MVP Scope
+The planned path is not implemented by the current bootstrap.
 
--   Repository foundation
--   `.ai-qa/` project contract
--   Project / Requirement / AcceptanceCriterion / QualityRisk /
-    TestObligation / TestCase / TraceLink
--   Project scanner/parser/serializer/validator
--   `qaw init`, `qaw validate`, `qaw doctor`, `qaw open`
--   local SQLite runtime store
--   Tool Runtime
--   MockProvider
--   OpenAICompatibleProvider
--   Agent Execution Loop
--   QA Task Loop + Completion Contract
--   ChangeProposal + human approval
--   Requirement Analysis workflow
--   Traceability UI
--   English / zh-CN UI
--   deterministic Golden Path E2E
+## Planned MVP Scope
 
-## Explicit Non-goals
+Agent Runtime, SQLite runtime state, Tool Runtime, MockProvider,
+OpenAICompatibleProvider, Agent Execution Loop, QA Task Loop, Completion
+Contract, ChangeProposal approval, Requirement Analysis, Traceability UI,
+English / zh-CN UI, and deterministic Golden Path E2E remain planned.
 
-Evidence execution adapters, Quality Gate, full Quality Engineering
-Loop, Skills, multiple native providers, MCP/GitHub/Jira, PostgreSQL,
-multi-user/RBAC, vector database, Kubernetes.
+## Bootstrap exclusions
 
-## Exit Criteria
+Evidence execution adapters, Quality Gate, full Quality Engineering Loop,
+Skills, multiple native providers, MCP/GitHub/Jira, PostgreSQL,
+multi-user/RBAC, vector database, and Kubernetes are not part of the
+bootstrap slice.
 
-The Golden Path passes without Internet using MockProvider, and the same
-domain/application code can run with DeepSeek and at least one
-additional OpenAI-compatible model.
+## Bootstrap exit criteria
+
+The Project File Contract and both CLI commands pass the offline quality
+gates. The planned Golden Path has a separate exit criterion: it must pass
+without Internet using MockProvider.

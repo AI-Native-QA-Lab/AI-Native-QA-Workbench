@@ -47,21 +47,26 @@ quality decisions.
 - Contract-first + TDD
 - English-first official documentation, with Chinese support
 
-## MVP
+## Current Bootstrap Scope
 
-The MVP proves one deterministic end-to-end workflow:
+The current v0.1 bootstrap implements:
 
-`Requirement → AI Analysis → AC/Risk/Obligation/Test Proposal → Human Review → .ai-qa Files → Traceability → Validation`
+- The `.ai-qa/project.yaml` Project File Contract
+- Deterministic domain validation and a local file store
+- `qaw init` and `qaw validate`
+- Offline unit, contract, integration, architecture, and documentation
+  quality gates
 
-The same workflow must pass in CI with `MockProvider`, without a live
-LLM.
+Agent Runtime, SQLite runtime state, UI, providers, Evidence, and the
+Golden Path AI workflow are planned work; they are not available commands
+in this bootstrap.
 
 ## Storage
 
 - Project quality source of truth: `.ai-qa/` using Markdown/YAML/JSON
-- Runtime state: local SQLite
+- Runtime state: local SQLite, planned for a later implementation slice
 - Large evidence artifacts: local filesystem references
-- PostgreSQL: optional future Shared Workbench capability, not a v0.x
+- PostgreSQL: optional future Shared Workbench capability, not a current
   dependency
 
 ## Documentation

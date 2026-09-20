@@ -25,19 +25,24 @@ pnpm qaw validate ./example-project
 当前版本还没有声称实现 `doctor`、`open` 或 AI 分析流程；这些能力仍在
 Roadmap 中。
 
-## MVP
+## 当前 Bootstrap 范围
 
-MVP 只验证一条真正的产品闭环：
+当前 v0.1 Bootstrap 已实现：
 
-`Requirement → AI Analysis → AC/Risk/Obligation/Test Proposal → Human Review → .ai-qa → Traceability → Validation`
+- `.ai-qa/project.yaml` Project File Contract
+- 确定性的 Domain 校验和本地文件存储
+- `qaw init` 与 `qaw validate`
+- 离线 unit、contract、integration、architecture 和 documentation
+  quality gate
 
-该流程必须使用 `MockProvider` 在 CI 中确定性运行，不依赖真实 LLM。
+Agent Runtime、SQLite Runtime State、UI、Provider、Evidence 以及包含 AI
+分析的 Golden Path 仍在规划中，当前版本没有这些可用命令。
 
 ## Local-first
 
 - `.ai-qa/`：项目质量数据 Source of Truth
-- SQLite：本地 Agent/Workflow Runtime State
+- SQLite：后续 Agent/Workflow Runtime State 能力，当前尚未实现
 - Filesystem：大型 Evidence Artifact
-- PostgreSQL：后续 Shared Workbench 可选能力，不是 v0.x 依赖
+- PostgreSQL：后续 Shared Workbench 可选能力，不是当前版本依赖
 
 完整方案见 [GitHub 项目完整方案](docs/zh-CN/PROJECT_BLUEPRINT.md)。
