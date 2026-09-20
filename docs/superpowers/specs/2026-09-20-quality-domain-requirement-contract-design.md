@@ -1,16 +1,17 @@
 # Requirement 与 AcceptanceCriterion Domain 契约设计
 
-**状态：** 已获范围确认，等待书面 spec review；尚未开始实现。
+**状态：** 已获范围确认，已完成两轮自 review，等待书面 spec review；尚未开始实现。
 
 ## 1. 目标与当前理解
 
 本阶段继续完成 v0.1 MVP 的下一个最小 Domain 切片：在已经存在的
 `Project` contract 之上，建立 `Requirement` 与 `AcceptanceCriterion` 两个
-纯 TypeScript 值对象及其确定性校验。
+纯 TypeScript 数据契约及其确定性校验。
 
 本阶段的成功标准是：未来 Project Store 可以在不依赖 SQLite、UI、Provider 或
-AI Runtime 的情况下表达一条可追踪的需求及其验收标准，并能对不合法输入返回
-稳定 diagnostics。当前不实现文件持久化、CLI 命令、TraceLink 或 AI 生成流程。
+AI Runtime 的情况下表达一条可供后续 Traceability 建图的需求及其验收标准，并
+能对不合法输入返回稳定 diagnostics。当前不实现文件持久化、CLI 命令、TraceLink
+或 AI 生成流程。
 
 ### 已确认的约束
 
@@ -65,6 +66,20 @@ TraceLink，也不会同时维护嵌套副本和独立记录。
 Requirement 是否已存在。单实体 validator 没有项目集合上下文，不能可靠地判断
 引用是否存在；集合级完整性检查留给后续 Project Store/Traceability contract。
 
+### 2.4 共享标识符校验实现
+
+Project、Requirement 和 AcceptanceCriterion 使用同一条 kebab-case ID 规则。为
+避免三个 validator 各自维护正则表达式导致规则漂移，实现时新增 Domain 内部
+模块 `packages/domain/src/identifiers.ts`，提供不从 package 公共入口导出的：
+
+```ts
+export function isValidKebabCaseId(value: unknown): value is string;
+```
+
+现有 `validateProject` 和新的两个 validator 都调用这个 helper。helper 不做
+trim、slugify 或其他输入修改；它只返回是否匹配规则。该实现重构不改变现有
+Project 的公共 API 或行为。
+
 ## 3. Domain API
 
 在 `packages/domain/src/quality-domain.ts` 中导出：
@@ -113,9 +128,9 @@ export function validateAcceptanceCriterion(
 ^[a-z0-9]+(?:-[a-z0-9]+)*$
 ```
 
-这是项目内稳定引用的 machine identifier；中文、空格、大写字母、下划线、点号
-和空字符串都返回对应的 invalid diagnostic。该规则与现有 Project ID contract
-一致，但本阶段不自动改写用户输入。
+这是项目内稳定引用的 machine identifier；中文、空格、大写字母、下划线、点号、
+连续分隔符（例如 `a--b`）和空字符串都返回对应的 invalid diagnostic。该规则与
+现有 Project ID contract 一致，但本阶段不自动改写用户输入。
 
 ### 3.2 Requirement 校验顺序
 
@@ -127,7 +142,9 @@ export function validateAcceptanceCriterion(
    `description`；
 4. 没有 diagnostics 时返回 `{ valid: true, diagnostics: [] }`。
 
-description 可以是空字符串；title 只允许首尾空白，但不自动 trim 或修改实体。
+description 可以是空字符串。title 的有效条件是字符串经 `trim()` 后长度大于
+零；因此 `"  Login  "` 有效，且 validator 不会 trim 或修改实体，只在判空时
+使用 trim。
 
 ### 3.3 AcceptanceCriterion 校验顺序
 
@@ -141,6 +158,15 @@ description 可以是空字符串；title 只允许首尾空白，但不自动 t
 4. 没有 diagnostics 时返回 `{ valid: true, diagnostics: [] }`。
 
 statement 可以包含中文、标点和多行文本；只拒绝空字符串或全是空白的字符串。
+例如 `"  Given a user  "` 有效，且首尾空白会原样保留；validator 只在判空时
+使用 trim。
+
+### 3.4 Diagnostic message 边界
+
+`Diagnostic.code`、`path`、`severity`、diagnostics 顺序和 `valid` 是本契约的
+机器可依赖字段。`Diagnostic.message` 只提供当前 CLI/调试使用的英文解释，不是
+兼容性键；unit tests 必须断言 code/path/severity/order，不把完整 message 文本
+作为跨版本兼容条件。未来 UI/i18n 应根据 code 映射用户可见文案。
 
 ## 4. 架构与实现边界
 
@@ -150,11 +176,14 @@ statement 可以包含中文、标点和多行文本；只拒绝空字符串或�
 apps/cli → packages/project-store → packages/domain
 ```
 
-本阶段只修改 `packages/domain` 及其 unit tests。实现不得把公共 validator 放入
-Project Store，也不得在 Domain 中读取 `.ai-qa/` 或调用任何外部服务。
+本阶段的核心实现只修改 `packages/domain` 及其 unit tests；同时按稳定契约变更
+要求同步双语 contract 文档、公共文件索引和 Changelog。实现不得把公共 validator
+放入 Project Store，也不得在 Domain 中读取 `.ai-qa/` 或调用任何外部服务。
 
 新增文件：
 
+- `packages/domain/src/identifiers.ts`：Project 与质量实体共享的内部 ID 校验
+  helper；
 - `packages/domain/src/quality-domain.ts`：实体类型、diagnostic code 和两个
   validator；
 - `tests/unit/domain/quality-domain.test.ts`：Requirement/AcceptanceCriterion
@@ -181,8 +210,9 @@ Project Store，也不得在 Domain 中读取 `.ai-qa/` 或调用任何外部服
    顺序的三个 diagnostics；
 3. 合法 AcceptanceCriterion 通过，statement 可以是中文和多行文本；
 4. AcceptanceCriterion 的 id、requirementId、statement 分别覆盖非法值；
-5. 全是中文、空格、下划线或点号的 ID 被拒绝；
-6. `packages/domain` architecture boundary 继续通过，不出现 forbidden import。
+5. 全是中文、空格、下划线、点号、连续分隔符或空字符串的 ID 被拒绝；
+6. validator 不修改带首尾空白的合法 title、statement 或其他输入字段；
+7. `packages/domain` architecture boundary 继续通过，不出现 forbidden import。
 
 每个新增行为都必须观察到 RED，再实现 GREEN；最终运行：
 
@@ -200,7 +230,9 @@ pnpm check:docs
 
 - `Requirement` 和 `AcceptanceCriterion` 类型从 Domain package 公共入口导出；
 - 所有 diagnostic code、path 和顺序与本 spec 一致；
+- `Diagnostic.message` 不被当作跨版本兼容键，测试不依赖完整 message 文本；
 - validator 不修改输入对象，不做 trim、slugify 或隐式关系查询；
+- Project 与新增实体通过同一个内部 helper 校验 kebab-case ID；
 - Domain 无新增基础设施或 Provider 依赖；
 - unit、typecheck、architecture、完整测试和文档检查通过；
 - 英文/中文 contract 文档明确区分当前实现和后续关系完整性、持久化、AI
@@ -216,3 +248,28 @@ pnpm check:docs
 后续 Traceability contract 可以在集合上下文中检查
 `AcceptanceCriterion.requirementId` 是否存在，并建立可重建的图索引；这不属于
 本阶段的 validator 行为。
+
+## 8. 两轮自 review 记录
+
+### 第一轮：现有代码与架构一致性
+
+- 发现 Project 和新增实体如果各自维护 ID 正则，未来可能产生规则漂移；已改为
+  共享 Domain 内部 helper，并明确不改变 Project 公共行为。
+- 发现“可追踪”可能被理解为本阶段已交付 Traceability；已改为“为后续建图提供
+  基础”。
+- 发现 title 的空白规则表述不明确；已明确为 trim 仅用于判空，输入原值不修改。
+- 发现 message 的稳定性未定义；已明确 code/path/severity/order 是契约，message
+  不是兼容性键。
+
+### 第二轮：对抗性输入与验收可测试性
+
+- 补充连续分隔符 `a--b`、空字符串、非字符串和全空白值的边界说明。
+- 补充 validator 不修改输入对象的测试要求，覆盖首尾空白文本。
+- 确认单实体 validator 不承担关系存在性检查，避免把集合级 Traceability 语义
+  偷渡到本阶段。
+- 发现 TypeScript interface 被称为“值对象”不准确，已改为“数据契约”；并明确
+  statement 与 title 一样保留首尾空白。
+- 发现实现范围段落与后续文件清单相互矛盾，已明确 Domain/tests 是核心实现，
+  双语 contract、索引和 Changelog 是同步文档变更。
+- 确认新增 helper、双语 contract 文档、公共导出、测试和文档门禁都已列入后续
+  实施文件边界；未发现需要扩展到 Store、CLI 或 Runtime 的隐藏依赖。
