@@ -96,7 +96,7 @@ ESLint、Prettier、tsx、GitHub Actions。
 
 - [ ] **Step 2: 写入许可证**
 
-  将指定 raw LICENSE 的 60 行原文写入根目录 LICENSE。文件第一行必须是：
+  将指定 raw LICENSE 的完整原文写入根目录 LICENSE。文件第一行必须是：
 
   ~~~text
   # PolyForm Noncommercial License 1.0.0
