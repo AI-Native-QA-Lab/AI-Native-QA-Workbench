@@ -1,6 +1,7 @@
 # QualityRisk 与 TestObligation Domain Contract 设计
 
-**状态：** 已获范围确认，已完成两轮自 review，等待用户 review；尚未开始实现。
+**状态：** 已获范围确认，已完成两轮设计 review 和本轮两轮自 review，等待用户
+review；尚未开始实现。
 
 ## 1. 目标与范围
 
@@ -190,7 +191,8 @@ REFACTOR → Architecture Check → Regression → Docs`：
 3. 合法 TestObligation 通过，statement 可以是中文和多行文本并保持输入不变；
 4. TestObligation 同时包含非法 id、非法 riskId、空 statement 时，返回三个固定
    顺序的 diagnostics；
-5. 对两个实体的全部 ID 字段覆盖中文、空格、下划线、点号、连续分隔符、空字符串；
+5. 对两个实体的全部 ID 字段覆盖中文、空格、下划线、点号、连续分隔符、开头分隔符、
+   结尾分隔符和空字符串；
 6. 对两个实体覆盖 `undefined`、`null`、数字、字段非字符串等 malformed runtime
    input，确认不抛异常；
 7. 使用格式合法但未加载的 `requirementId`/`riskId`，确认单实体 validator 不做
@@ -243,3 +245,20 @@ Contract 与 read model 稳定后再加入。ChangeProposal、Human Review、AI 
   testLevel，避免把风险管理和测试执行语义提前混入。
 - 确认现有共享 ID helper、Project/Requirement/AcceptanceCriterion public API 和
   Domain 架构边界保持不变。
+
+## 11. 本轮两轮自 review 修订记录
+
+### 第一轮：规格覆盖
+
+- 发现共同 ID 规则包含开头/结尾分隔符，但测试设计没有明确列出；已补充
+  `-leading` 与 `trailing-` 覆盖要求。
+- 确认 `QualityRisk` 不强制增加 `acceptanceCriterionId`，避免把跨 AC 风险错误地
+  限制为单一 AC 关系。
+
+### 第二轮：边界一致性
+
+- 确认运行时 candidate 示例已使用 `Partial<QualityRisk>` 和
+  `Partial<TestObligation>`，不存在未定义的泛型占位符。
+- 确认风险字段 `riskSeverity` 与 diagnostic `severity` 语义已区分。
+- 确认第一版 UI 只读入口不再错误依赖 TestCase/TraceLink；Traceability 页面仍
+  明确等待后续 TraceLink Contract 和 read model。
