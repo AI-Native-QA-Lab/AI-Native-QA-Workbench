@@ -65,7 +65,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 - Produces: Domain 内部函数 `isValidKebabCaseId(value: unknown): value is string`；
   `validateProject` 改为使用该函数，但保持现有公共 API、诊断 code 和行为不变。
 
-- [ ] **Step 1: 写共享 helper 的 RED 测试**
+- [x] **Step 1: 写共享 helper 的 RED 测试**
 
   新建 `tests/unit/domain/identifiers.test.ts`，从内部源码路径导入 helper，
   不从 `@ai-native-qa-workbench/domain` 导入，以明确它不是 public API。测试至少
@@ -103,7 +103,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   Expected: RED，测试因 `packages/domain/src/identifiers.ts` 尚不存在而失败；
   不修改测试以绕过失败。
 
-- [ ] **Step 2: 实现最小 helper**
+- [x] **Step 2: 实现最小 helper**
 
   创建 `packages/domain/src/identifiers.ts`，只保留以下职责，不做 trim、slugify
   或错误收集：
@@ -116,7 +116,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   }
   ```
 
-- [ ] **Step 3: 让 Project 使用 helper 并运行 GREEN**
+- [x] **Step 3: 让 Project 使用 helper 并运行 GREEN**
 
   在 `packages/domain/src/project.ts` 中导入
   `isValidKebabCaseId`，删除 `PROJECT_ID_PATTERN`，将 Project ID 判断改为：
@@ -138,7 +138,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   Expected: GREEN；Project 既有六个校验行为和两个 ID 派生行为保持通过，
   helper 的无效输入矩阵全部通过。不要把 helper 添加到 `packages/domain/src/index.ts`。
 
-- [ ] **Step 4: 检查任务边界并提交**
+- [x] **Step 4: 检查任务边界并提交**
 
   Run: `git diff --check`。
 
@@ -166,7 +166,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   `validateRequirement`、`validateAcceptanceCriterion`；新增六个质量域
   `DiagnosticCode`，但不改变既有 Project code。
 
-- [ ] **Step 1: 写 Requirement 和 AcceptanceCriterion 的 RED 行为测试**
+- [x] **Step 1: 写 Requirement 和 AcceptanceCriterion 的 RED 行为测试**
 
   新建测试并从 `@ai-native-qa-workbench/domain` 导入 public contract。测试输入
   用 `as Requirement` 或 `as AcceptanceCriterion` 模拟运行时不可信数据，避免把
@@ -309,7 +309,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
   Expected: RED，因 public types/validators 尚未存在而失败。
 
-- [ ] **Step 2: 扩展共享 diagnostic code 并实现最小 validator**
+- [x] **Step 2: 扩展共享 diagnostic code 并实现最小 validator**
 
   在 `packages/domain/src/project.ts` 的 `DiagnosticCode` union 追加且只追加：
 
@@ -393,7 +393,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   return { valid: diagnostics.length === 0, diagnostics };
   ```
 
-- [ ] **Step 3: 暴露 public API 并运行 GREEN**
+- [x] **Step 3: 暴露 public API 并运行 GREEN**
 
   在 `packages/domain/src/index.ts` 追加：
 
@@ -413,7 +413,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   `packages/domain/src` 中没有 forbidden import；public package 可以导出两个实体
   和两个 validator，但不能导出内部 ID helper。
 
-- [ ] **Step 4: 完成任务级回归并提交**
+- [x] **Step 4: 完成任务级回归并提交**
 
   Run: `git diff --check`。
 
@@ -433,6 +433,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 - Create: `docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md`
 - Modify: `docs/en/contracts/CORE_CONTRACT_INDEX.md`
 - Modify: `docs/zh-CN/contracts/CORE_CONTRACT_INDEX.md`
+- Modify: `docs/superpowers/plans/2026-09-20-quality-domain-requirement-contract.md`
 - Modify: `FILE_INDEX.md`
 - Modify: `CHANGELOG.md`
 
@@ -442,7 +443,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 - Produces: 面向仓库贡献者的中英文稳定 Contract 文档；文档明确当前能力、字段
   校验、diagnostic 兼容边界，以及后续 Store/Traceability/AI 能力不属于当前切片。
 
-- [ ] **Step 1: 编写英文 Contract**
+- [x] **Step 1: 编写英文 Contract**
 
   `docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md` 必须至少包含以下章节，并以实现
   为准写出完整规则：Purpose、Public Types、Validation Rules、Diagnostics、
@@ -469,7 +470,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   code/path/severity 是 machine contract；message 不是兼容性键；单实体校验不
   查询关系存在性；当前不定义持久化格式、schema migration、AI 生成或 TraceLink。
 
-- [ ] **Step 2: 编写中文镜像并同步索引**
+- [x] **Step 2: 编写中文镜像并同步索引**
 
   `docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md` 保持与英文文档相同章节、
   字段、正则、diagnostic code 和范围边界，解释文字使用中文。
@@ -484,7 +485,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   中文索引的显示文字可以保持中文，但链接目标必须是
   `QUALITY_DOMAIN_CONTRACT.md`。
 
-- [ ] **Step 3: 更新文件索引和 Changelog**
+- [x] **Step 3: 更新文件索引和 Changelog**
 
   在 `FILE_INDEX.md` 现有 Contract 文档路径列表中加入以下两行：
 
@@ -512,7 +513,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   spec 状态已在本实施计划提交前更新为“已获用户确认；尚未开始实现”，Task 3
   只需核对该状态和两轮自 review 记录仍然存在，不再重复修改 spec。
 
-- [ ] **Step 4: 运行文档门禁和全量回归**
+- [x] **Step 4: 运行文档门禁和全量回归**
 
   依次运行：
 
@@ -532,10 +533,10 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   integration/architecture tests 均通过；`git status` 只剩本任务待提交的文档变更。
   若 `pnpm check:docs` 报告链接错误，先修正相对路径再继续，不降低检查范围。
 
-- [ ] **Step 5: 提交文档并记录最终状态**
+- [x] **Step 5: 提交文档并记录最终状态**
 
   ```bash
-  git add CHANGELOG.md FILE_INDEX.md docs/en/contracts/CORE_CONTRACT_INDEX.md docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md docs/zh-CN/contracts/CORE_CONTRACT_INDEX.md docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md
+  git add CHANGELOG.md FILE_INDEX.md docs/en/contracts/CORE_CONTRACT_INDEX.md docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md docs/zh-CN/contracts/CORE_CONTRACT_INDEX.md docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md docs/superpowers/plans/2026-09-20-quality-domain-requirement-contract.md
   git commit -m "docs: document requirement quality domain contract"
   ```
 
@@ -545,13 +546,13 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
 ## Final Acceptance Checklist
 
-- [ ] `Requirement` 和 `AcceptanceCriterion` 从 `@ai-native-qa-workbench/domain`
+- [x] `Requirement` 和 `AcceptanceCriterion` 从 `@ai-native-qa-workbench/domain`
   公共入口导出，`identifiers.ts` 未被公共入口导出。
-- [ ] 六个新增 diagnostic code、path、severity 和固定顺序与 spec 完全一致。
-- [ ] malformed runtime input 不抛异常；validator 不改写输入；空 description 合法；
+- [x] 六个新增 diagnostic code、path、severity 和固定顺序与 spec 完全一致。
+- [x] malformed runtime input 不抛异常；validator 不改写输入；空 description 合法；
   unresolved 但格式合法的 `requirementId` 合法。
-- [ ] Project、新增实体共享同一内部 ID helper，既有 Project tests 通过。
-- [ ] Domain architecture、format、lint、typecheck、build、完整测试和文档链接检查
+- [x] Project、新增实体共享同一内部 ID helper，既有 Project tests 通过。
+- [x] Domain architecture、format、lint、typecheck、build、完整测试和文档链接检查
   全部通过。
-- [ ] 英文/中文 Contract、FILE_INDEX 和 CHANGELOG 已同步，`git diff --check` 干净，
+- [x] 英文/中文 Contract、FILE_INDEX 和 CHANGELOG 已同步，`git diff --check` 干净，
   没有无关文件变更。

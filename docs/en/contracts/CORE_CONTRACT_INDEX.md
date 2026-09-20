@@ -2,7 +2,7 @@
 
 ## MVP / v0.1
 
--   Quality Domain Contract
+-   [Quality Domain Contract](QUALITY_DOMAIN_CONTRACT.md)
 -   Project File Contract
 -   Traceability Contract
 -   Agent Runtime Contract
