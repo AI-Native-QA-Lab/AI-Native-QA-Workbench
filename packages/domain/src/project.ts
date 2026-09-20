@@ -1,3 +1,5 @@
+import { isValidKebabCaseId } from "./identifiers.js";
+
 export const PROJECT_SCHEMA_VERSION = "0.1" as const;
 
 export type ProjectLocale = "en" | "zh-CN";
@@ -29,8 +31,6 @@ export interface ValidationResult {
   diagnostics: readonly Diagnostic[];
 }
 
-const PROJECT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 function diagnostic(code: DiagnosticCode, path: string, message: string): Diagnostic {
   return {
     code,
@@ -54,7 +54,7 @@ export function validateProject(project: Project): ValidationResult {
     );
   }
 
-  if (typeof candidate.id !== "string" || !PROJECT_ID_PATTERN.test(candidate.id)) {
+  if (!isValidKebabCaseId(candidate.id)) {
     diagnostics.push(
       diagnostic(
         "PROJECT_ID_INVALID",
