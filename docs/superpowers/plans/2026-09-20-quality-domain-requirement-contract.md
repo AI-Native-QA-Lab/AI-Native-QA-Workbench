@@ -135,7 +135,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
   Run: `pnpm exec vitest run tests/unit/domain/identifiers.test.ts tests/unit/domain/project.test.ts`
 
-  Expected: GREEN；Project 既有 six 个校验行为和两个 ID 派生行为保持通过，
+  Expected: GREEN；Project 既有六个校验行为和两个 ID 派生行为保持通过，
   helper 的无效输入矩阵全部通过。不要把 helper 添加到 `packages/domain/src/index.ts`。
 
 - [ ] **Step 4: 检查任务边界并提交**
@@ -266,8 +266,44 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
   ```
 
   另外加入一个输入快照测试：对 title 和 statement 含首尾空白的合法对象调用
-  validator 前后分别 `structuredClone`，确认对象不变；在单独的 table test 中确认
-  中文、空格、下划线、点号、连续分隔符和空字符串 ID 都返回对应 invalid code。
+  validator 前后分别 `structuredClone`，确认对象不变；用以下 table tests 固定
+  三个 ID 字段的无效值和对应 code：
+
+  ```ts
+  const invalidIds = ["中文", "has space", "Bad_ID", "has.dot", "a--b", ""];
+
+  it.each(invalidIds)("rejects invalid Requirement.id %j", (id) => {
+    const result = validateRequirement({ id, title: "Title", description: "" });
+    expect(result.diagnostics.map(({ code, path }) => ({ code, path }))).toContainEqual({
+      code: "REQUIREMENT_ID_INVALID",
+      path: "id",
+    });
+  });
+
+  it.each(invalidIds)("rejects invalid AcceptanceCriterion.id %j", (id) => {
+    const result = validateAcceptanceCriterion({
+      id,
+      requirementId: "login",
+      statement: "valid",
+    });
+    expect(result.diagnostics.map(({ code, path }) => ({ code, path }))).toContainEqual({
+      code: "ACCEPTANCE_CRITERION_ID_INVALID",
+      path: "id",
+    });
+  });
+
+  it.each(invalidIds)("rejects invalid AcceptanceCriterion.requirementId %j", (requirementId) => {
+    const result = validateAcceptanceCriterion({
+      id: "criterion-1",
+      requirementId,
+      statement: "valid",
+    });
+    expect(result.diagnostics.map(({ code, path }) => ({ code, path }))).toContainEqual({
+      code: "ACCEPTANCE_CRITERION_REQUIREMENT_ID_INVALID",
+      path: "requirementId",
+    });
+  });
+  ```
 
   Run: `pnpm exec vitest run tests/unit/domain/quality-domain.test.ts`
 
@@ -397,7 +433,6 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 - Create: `docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md`
 - Modify: `docs/en/contracts/CORE_CONTRACT_INDEX.md`
 - Modify: `docs/zh-CN/contracts/CORE_CONTRACT_INDEX.md`
-- Modify: `docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md`
 - Modify: `FILE_INDEX.md`
 - Modify: `CHANGELOG.md`
 
@@ -451,15 +486,31 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
 - [ ] **Step 3: 更新文件索引和 Changelog**
 
-  在 `FILE_INDEX.md` 的 Contract 文档区域加入英文/中文 Quality Domain Contract；
-  在 Process documents 区域加入本计划文件和已完成的 spec 文件。
+  在 `FILE_INDEX.md` 现有 Contract 文档路径列表中加入以下两行：
 
-  在 `CHANGELOG.md` 的 `[Unreleased]` 下追加一条中文/英文均可理解的记录，明确
-  已加入 Requirement、AcceptanceCriterion、确定性 diagnostics 和双语 Contract，
-  不把它描述成 v0.1 全部完成或 v1.0 发布。
+  ```md
+  -   `docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md`
+  -   `docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md`
+  ```
 
-  同步更新已获用户确认的 spec 状态，将“等待书面 spec review”改为“已获用户确认、
-  尚未开始实现”；保留两轮自 review 记录，不修改已确认的范围和契约内容。
+  在 Process documents 区域确认以下两行存在；如果不存在则补入：
+
+  ```md
+  -   `docs/superpowers/plans/2026-09-20-quality-domain-requirement-contract.md`
+  -   `docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md`
+  ```
+
+  在 `CHANGELOG.md` 的 `[Unreleased]` 下追加以下条目，明确已加入
+  Requirement、AcceptanceCriterion、确定性 diagnostics 和双语 Contract，不把它
+  描述成 v0.1 全部完成或 v1.0 发布：
+
+  ```md
+  - Added the Requirement and AcceptanceCriterion domain contracts with deterministic
+    validation diagnostics and bilingual contract documentation.
+  ```
+
+  spec 状态已在本实施计划提交前更新为“已获用户确认；尚未开始实现”，Task 3
+  只需核对该状态和两轮自 review 记录仍然存在，不再重复修改 spec。
 
 - [ ] **Step 4: 运行文档门禁和全量回归**
 
@@ -484,7 +535,7 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 - [ ] **Step 5: 提交文档并记录最终状态**
 
   ```bash
-  git add CHANGELOG.md FILE_INDEX.md docs/en/contracts/CORE_CONTRACT_INDEX.md docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md docs/zh-CN/contracts/CORE_CONTRACT_INDEX.md docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md docs/superpowers/plans/2026-09-20-quality-domain-requirement-contract.md
+  git add CHANGELOG.md FILE_INDEX.md docs/en/contracts/CORE_CONTRACT_INDEX.md docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md docs/zh-CN/contracts/CORE_CONTRACT_INDEX.md docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md
   git commit -m "docs: document requirement quality domain contract"
   ```
 
