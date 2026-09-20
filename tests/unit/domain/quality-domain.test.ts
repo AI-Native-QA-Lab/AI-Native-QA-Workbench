@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   validateAcceptanceCriterion,
   validateRequirement,
+  validateQualityRisk,
   type AcceptanceCriterion,
+  type QualityRisk,
   type Requirement,
 } from "@ai-native-qa-workbench/domain";
 
@@ -94,6 +96,111 @@ describe("validateAcceptanceCriterion", () => {
 
     expect(() => validateAcceptanceCriterion(criterion)).not.toThrow();
     expect(validateAcceptanceCriterion(criterion).valid).toBe(false);
+  });
+});
+
+describe("validateQualityRisk", () => {
+  it("accepts Chinese multiline statements and preserves the input", () => {
+    const risk: QualityRisk = {
+      id: "login-risk",
+      requirementId: "login",
+      statement: "  用户可能在重复提交时看到不一致状态\n需要验证幂等行为  ",
+    };
+    const before = structuredClone(risk);
+
+    expect(validateQualityRisk(risk)).toEqual({ valid: true, diagnostics: [] });
+    expect(risk).toEqual(before);
+  });
+
+  it("accepts a syntactically valid but currently unresolved requirementId", () => {
+    expect(
+      validateQualityRisk({
+        id: "risk-1",
+        requirementId: "requirement-not-loaded",
+        statement: "A valid risk statement",
+      }),
+    ).toEqual({ valid: true, diagnostics: [] });
+  });
+
+  it("reports id, requirementId, and statement in contract order", () => {
+    const result = validateQualityRisk({
+      id: "a--b",
+      requirementId: "Bad_ID",
+      statement: " \n\t",
+    } as unknown as QualityRisk);
+
+    expect(
+      result.diagnostics.map(({ code, path, severity }) => ({ code, path, severity })),
+    ).toEqual([
+      { code: "QUALITY_RISK_ID_INVALID", path: "id", severity: "error" },
+      {
+        code: "QUALITY_RISK_REQUIREMENT_ID_INVALID",
+        path: "requirementId",
+        severity: "error",
+      },
+      { code: "QUALITY_RISK_STATEMENT_EMPTY", path: "statement", severity: "error" },
+    ]);
+  });
+
+  it.each([undefined, null, 42, "not-an-object"])(
+    "returns diagnostics for malformed whole input %j",
+    (value) => {
+      const validate = () => validateQualityRisk(value as unknown as QualityRisk);
+
+      expect(validate).not.toThrow();
+      expect(validate().valid).toBe(false);
+    },
+  );
+
+  it.each([
+    ["id", 42],
+    ["requirementId", null],
+    ["statement", 42],
+  ])("returns a diagnostic for malformed %s", (field, value) => {
+    const risk = {
+      id: "risk-1",
+      requirementId: "login",
+      statement: "valid",
+      [field]: value,
+    } as unknown as QualityRisk;
+
+    expect(() => validateQualityRisk(risk)).not.toThrow();
+    expect(validateQualityRisk(risk).valid).toBe(false);
+  });
+});
+
+const invalidQualityRiskIds = [
+  "中文",
+  "has space",
+  "Bad_ID",
+  "has.dot",
+  "a--b",
+  "-leading",
+  "trailing-",
+  "",
+];
+
+describe("QualityRisk identifier validation", () => {
+  it.each(invalidQualityRiskIds)("rejects QualityRisk.id %j", (id) => {
+    expect(
+      validateQualityRisk({ id, requirementId: "login", statement: "valid" }).diagnostics,
+    ).toContainEqual({
+      code: "QUALITY_RISK_ID_INVALID",
+      message: expect.any(String),
+      path: "id",
+      severity: "error",
+    });
+  });
+
+  it.each(invalidQualityRiskIds)("rejects QualityRisk.requirementId %j", (requirementId) => {
+    expect(
+      validateQualityRisk({ id: "risk-1", requirementId, statement: "valid" }).diagnostics,
+    ).toContainEqual({
+      code: "QUALITY_RISK_REQUIREMENT_ID_INVALID",
+      message: expect.any(String),
+      path: "requirementId",
+      severity: "error",
+    });
   });
 });
 

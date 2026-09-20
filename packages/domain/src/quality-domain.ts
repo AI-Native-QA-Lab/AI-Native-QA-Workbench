@@ -13,6 +13,12 @@ export interface AcceptanceCriterion {
   statement: string;
 }
 
+export interface QualityRisk {
+  id: string;
+  requirementId: string;
+  statement: string;
+}
+
 function diagnostic(code: DiagnosticCode, path: string, message: string): Diagnostic {
   return {
     code,
@@ -78,6 +84,40 @@ export function validateAcceptanceCriterion(criterion: AcceptanceCriterion): Val
         "ACCEPTANCE_CRITERION_STATEMENT_EMPTY",
         "statement",
         "Acceptance criterion statement must not be empty.",
+      ),
+    );
+  }
+
+  return {
+    valid: diagnostics.length === 0,
+    diagnostics,
+  };
+}
+
+export function validateQualityRisk(risk: QualityRisk): ValidationResult {
+  const candidate = (risk ?? {}) as Partial<QualityRisk>;
+  const diagnostics: Diagnostic[] = [];
+
+  if (!isValidKebabCaseId(candidate.id)) {
+    diagnostics.push(diagnostic("QUALITY_RISK_ID_INVALID", "id", "Quality risk id is invalid."));
+  }
+
+  if (!isValidKebabCaseId(candidate.requirementId)) {
+    diagnostics.push(
+      diagnostic(
+        "QUALITY_RISK_REQUIREMENT_ID_INVALID",
+        "requirementId",
+        "Quality risk requirementId is invalid.",
+      ),
+    );
+  }
+
+  if (typeof candidate.statement !== "string" || candidate.statement.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "QUALITY_RISK_STATEMENT_EMPTY",
+        "statement",
+        "Quality risk statement must not be empty.",
       ),
     );
   }
