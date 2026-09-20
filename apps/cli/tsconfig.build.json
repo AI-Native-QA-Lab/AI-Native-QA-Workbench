@@ -5,6 +5,9 @@
     "declarationMap": true,
     "noEmit": false,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "paths": {
+      "@ai-native-qa-workbench/project-store": ["../../packages/project-store/dist/index.d.ts"]
+    }
   }
 }
