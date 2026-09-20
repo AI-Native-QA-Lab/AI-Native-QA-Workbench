@@ -3,9 +3,11 @@ import {
   validateAcceptanceCriterion,
   validateRequirement,
   validateQualityRisk,
+  validateTestObligation,
   type AcceptanceCriterion,
   type QualityRisk,
   type Requirement,
+  type TestObligation,
 } from "@ai-native-qa-workbench/domain";
 
 describe("validateRequirement", () => {
@@ -199,6 +201,111 @@ describe("QualityRisk identifier validation", () => {
       code: "QUALITY_RISK_REQUIREMENT_ID_INVALID",
       message: expect.any(String),
       path: "requirementId",
+      severity: "error",
+    });
+  });
+});
+
+describe("validateTestObligation", () => {
+  it("accepts Chinese multiline statements and preserves the input", () => {
+    const obligation: TestObligation = {
+      id: "login-idempotency-check",
+      riskId: "login-risk",
+      statement: "验证重复提交不会创建重复订单\n验证失败时有可观察证据",
+    };
+    const before = structuredClone(obligation);
+
+    expect(validateTestObligation(obligation)).toEqual({ valid: true, diagnostics: [] });
+    expect(obligation).toEqual(before);
+  });
+
+  it("accepts a syntactically valid but currently unresolved riskId", () => {
+    expect(
+      validateTestObligation({
+        id: "obligation-1",
+        riskId: "risk-not-loaded",
+        statement: "A valid obligation statement",
+      }),
+    ).toEqual({ valid: true, diagnostics: [] });
+  });
+
+  it("reports id, riskId, and statement in contract order", () => {
+    const result = validateTestObligation({
+      id: "a--b",
+      riskId: "Bad_ID",
+      statement: " \n\t",
+    } as unknown as TestObligation);
+
+    expect(
+      result.diagnostics.map(({ code, path, severity }) => ({ code, path, severity })),
+    ).toEqual([
+      { code: "TEST_OBLIGATION_ID_INVALID", path: "id", severity: "error" },
+      { code: "TEST_OBLIGATION_RISK_ID_INVALID", path: "riskId", severity: "error" },
+      {
+        code: "TEST_OBLIGATION_STATEMENT_EMPTY",
+        path: "statement",
+        severity: "error",
+      },
+    ]);
+  });
+
+  it.each([undefined, null, 42, "not-an-object"])(
+    "returns diagnostics for malformed whole input %j",
+    (value) => {
+      const validate = () => validateTestObligation(value as unknown as TestObligation);
+
+      expect(validate).not.toThrow();
+      expect(validate().valid).toBe(false);
+    },
+  );
+
+  it.each([
+    ["id", 42],
+    ["riskId", null],
+    ["statement", 42],
+  ])("returns a diagnostic for malformed %s", (field, value) => {
+    const obligation = {
+      id: "obligation-1",
+      riskId: "login-risk",
+      statement: "valid",
+      [field]: value,
+    } as unknown as TestObligation;
+
+    expect(() => validateTestObligation(obligation)).not.toThrow();
+    expect(validateTestObligation(obligation).valid).toBe(false);
+  });
+});
+
+const invalidTestObligationIds = [
+  "中文",
+  "has space",
+  "Bad_ID",
+  "has.dot",
+  "a--b",
+  "-leading",
+  "trailing-",
+  "",
+];
+
+describe("TestObligation identifier validation", () => {
+  it.each(invalidTestObligationIds)("rejects TestObligation.id %j", (id) => {
+    expect(
+      validateTestObligation({ id, riskId: "login-risk", statement: "valid" }).diagnostics,
+    ).toContainEqual({
+      code: "TEST_OBLIGATION_ID_INVALID",
+      message: expect.any(String),
+      path: "id",
+      severity: "error",
+    });
+  });
+
+  it.each(invalidTestObligationIds)("rejects TestObligation.riskId %j", (riskId) => {
+    expect(
+      validateTestObligation({ id: "obligation-1", riskId, statement: "valid" }).diagnostics,
+    ).toContainEqual({
+      code: "TEST_OBLIGATION_RISK_ID_INVALID",
+      message: expect.any(String),
+      path: "riskId",
       severity: "error",
     });
   });

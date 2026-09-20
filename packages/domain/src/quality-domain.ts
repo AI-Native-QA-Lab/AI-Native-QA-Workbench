@@ -19,6 +19,12 @@ export interface QualityRisk {
   statement: string;
 }
 
+export interface TestObligation {
+  id: string;
+  riskId: string;
+  statement: string;
+}
+
 function diagnostic(code: DiagnosticCode, path: string, message: string): Diagnostic {
   return {
     code,
@@ -118,6 +124,42 @@ export function validateQualityRisk(risk: QualityRisk): ValidationResult {
         "QUALITY_RISK_STATEMENT_EMPTY",
         "statement",
         "Quality risk statement must not be empty.",
+      ),
+    );
+  }
+
+  return {
+    valid: diagnostics.length === 0,
+    diagnostics,
+  };
+}
+
+export function validateTestObligation(obligation: TestObligation): ValidationResult {
+  const candidate = (obligation ?? {}) as Partial<TestObligation>;
+  const diagnostics: Diagnostic[] = [];
+
+  if (!isValidKebabCaseId(candidate.id)) {
+    diagnostics.push(
+      diagnostic("TEST_OBLIGATION_ID_INVALID", "id", "Test obligation id is invalid."),
+    );
+  }
+
+  if (!isValidKebabCaseId(candidate.riskId)) {
+    diagnostics.push(
+      diagnostic(
+        "TEST_OBLIGATION_RISK_ID_INVALID",
+        "riskId",
+        "Test obligation riskId is invalid.",
+      ),
+    );
+  }
+
+  if (typeof candidate.statement !== "string" || candidate.statement.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "TEST_OBLIGATION_STATEMENT_EMPTY",
+        "statement",
+        "Test obligation statement must not be empty.",
       ),
     );
   }
