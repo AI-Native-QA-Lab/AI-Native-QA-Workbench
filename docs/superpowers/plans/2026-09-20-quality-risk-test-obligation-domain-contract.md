@@ -66,7 +66,7 @@ Domain 使用纯 TypeScript，测试离线执行。
 - Produces: `QualityRisk`、`validateQualityRisk`，以及三个
   `QualityRisk` diagnostic code，并从现有 public entry 间接导出。
 
-- [ ] **Step 1: 写 QualityRisk RED 测试**
+- [x] **Step 1: 写 QualityRisk RED 测试**
 
   在现有 `quality-domain.test.ts` 的导入中增加：
 
@@ -193,7 +193,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   Expected: RED，测试因 `validateQualityRisk` 和 `QualityRisk` 尚未从 Domain public
   entry 导出而失败；不得修改测试来绕过该失败。
 
-- [ ] **Step 2: 验证 RED 原因正确**
+- [x] **Step 2: 验证 RED 原因正确**
 
   Run:
 
@@ -205,7 +205,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   测试选择器错误或既有 Requirement/AcceptanceCriterion 回归。若输出暴露测试本身
   的错误，先修复测试并重新观察预期 RED。
 
-- [ ] **Step 3: 写最小 QualityRisk 实现**
+- [x] **Step 3: 写最小 QualityRisk 实现**
 
   在 `packages/domain/src/project.ts` 的 `DiagnosticCode` union 末尾追加：
 
@@ -260,7 +260,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   不修改 `packages/domain/src/index.ts` 的现有 `export * from "./quality-domain.js"`；
   该公共入口已经覆盖新增 API，任务 2 会用 public import 再次验证。
 
-- [ ] **Step 4: 运行 QualityRisk GREEN 与既有 Domain 回归**
+- [x] **Step 4: 运行 QualityRisk GREEN 与既有 Domain 回归**
 
   Run:
 
@@ -271,7 +271,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   Expected: GREEN；QualityRisk 新测试和既有 Project、Requirement、AcceptanceCriterion
   测试全部通过，且 diagnostics 的 code/path/severity/order 与测试一致。
 
-- [ ] **Step 5: 检查并提交 Task 1**
+- [x] **Step 5: 检查并提交 Task 1**
 
   Run:
 
@@ -302,7 +302,7 @@ Domain 使用纯 TypeScript，测试离线执行。
 - Produces: `TestObligation`、`validateTestObligation`，以及三个
   `TestObligation` diagnostic code。
 
-- [ ] **Step 1: 写 TestObligation RED 测试**
+- [x] **Step 1: 写 TestObligation RED 测试**
 
   在现有 Domain 测试导入中增加：
 
@@ -429,7 +429,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   Expected: RED，测试因 `validateTestObligation` 和 `TestObligation` 尚未导出而失败；
   既有 QualityRisk 测试必须继续通过。
 
-- [ ] **Step 2: 验证 RED 原因正确**
+- [x] **Step 2: 验证 RED 原因正确**
 
   Run:
 
@@ -441,7 +441,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   如果 import 报错同时隐藏了既有测试结果，先确认 Task 1 已提交且代码可编译，再
   继续实现。
 
-- [ ] **Step 3: 写最小 TestObligation 实现**
+- [x] **Step 3: 写最小 TestObligation 实现**
 
   在 `DiagnosticCode` union 末尾追加：
 
@@ -501,7 +501,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   export * from "./quality-domain.js";
   ```
 
-- [ ] **Step 4: 运行完整 Domain GREEN**
+- [x] **Step 4: 运行完整 Domain GREEN**
 
   Run:
 
@@ -514,7 +514,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   diagnostic code、固定顺序、malformed runtime input、孤立引用和 public export
   均被验证。
 
-- [ ] **Step 5: 检查并提交 Task 2**
+- [x] **Step 5: 检查并提交 Task 2**
 
   Run:
 
@@ -545,7 +545,7 @@ Domain 使用纯 TypeScript，测试离线执行。
 - Produces: 与实现一致的英文 canonical Contract、中文镜像、过程文档状态和项目
   索引记录。
 
-- [ ] **Step 1: 扩展英文 Contract**
+- [x] **Step 1: 扩展英文 Contract**
 
   在 `docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md` 保留已有 Requirement 与
   AcceptanceCriterion 章节，并增加以下公共类型、validator 和规则：
@@ -574,14 +574,14 @@ Domain 使用纯 TypeScript，测试离线执行。
   mitigation、testLevel、locale、schemaVersion、时间戳或 AI 元数据；集合级断裂引用
   由后续 Project Store/Traceability 处理；当前不包含持久化、UI、AI 或 Runtime。
 
-- [ ] **Step 2: 同步中文镜像**
+- [x] **Step 2: 同步中文镜像**
 
   在 `docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md` 按英文 Contract 相同顺序
   增加 QualityRisk/TestObligation 的类型、validator、ID 规则、六个诊断 code 表格、
   关系边界和 Out of Scope。中文文档可以保留现有双语 API 名称，但不得遗漏英文
   canonical Contract 的任何字段、顺序或行为边界。
 
-- [ ] **Step 3: 更新过程状态、索引和 Changelog**
+- [x] **Step 3: 更新过程状态、索引和 Changelog**
 
   将 spec 状态更新为：
 
@@ -604,7 +604,7 @@ Domain 使用纯 TypeScript，测试离线执行。
     validation diagnostics and bilingual contract documentation.
   ```
 
-- [ ] **Step 4: 运行文档检查并提交 Task 3**
+- [x] **Step 4: 运行文档检查并提交 Task 3**
 
   Run:
 
@@ -637,7 +637,7 @@ Domain 使用纯 TypeScript，测试离线执行。
 - Produces: 可交付的 v0.1 QualityRisk/TestObligation Domain 子切片；不改变既有
   Project、Requirement 和 AcceptanceCriterion 行为。
 
-- [ ] **Step 1: 执行完整质量门禁**
+- [x] **Step 1: 执行完整质量门禁**
 
   Run:
 
@@ -648,7 +648,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   Expected: format、lint、typecheck、build、完整测试、architecture check 和 docs
   check 全部通过。
 
-- [ ] **Step 2: 做最终差异 review**
+- [x] **Step 2: 做最终差异 review**
 
   Run:
 
@@ -667,7 +667,7 @@ Domain 使用纯 TypeScript，测试离线执行。
   - public entry 导出实体和 validator，内部 helper 未导出；
   - 只修改本切片所需文件，没有覆盖用户已有改动。
 
-- [ ] **Step 3: 完成状态记录**
+- [x] **Step 3: 完成状态记录**
 
   将本计划所有已完成步骤标记为 `[x]`，并将 spec 状态从“待最终验证”更新为：
 
@@ -685,7 +685,7 @@ Domain 使用纯 TypeScript，测试离线执行。
 
   Expected: 工作区干净；最终汇报明确列出实现版本、提交、验证命令和未实现边界。
 
-- [ ] **Step 4: 提交最终状态记录**
+- [x] **Step 4: 提交最终状态记录**
 
   只提交本计划执行过程中产生的计划勾选和最终 spec 状态变更：
 
