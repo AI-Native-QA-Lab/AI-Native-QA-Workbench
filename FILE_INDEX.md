@@ -61,3 +61,5 @@
 -   `docs/superpowers/specs/2026-09-20-repository-bootstrap-and-project-contract-design.md`
 -   `docs/superpowers/plans/2026-09-20-quality-domain-requirement-contract.md`
 -   `docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md`
+-   `docs/superpowers/plans/2026-09-20-quality-risk-test-obligation-domain-contract.md`
+-   `docs/superpowers/specs/2026-09-20-quality-risk-test-obligation-domain-contract-design.md`

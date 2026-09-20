@@ -1,7 +1,7 @@
 # QualityRisk 与 TestObligation Domain Contract 设计
 
-**状态：** 已获范围确认，已完成两轮设计 review 和本轮两轮自 review，等待用户
-review；尚未开始实现。
+**状态：** 已获范围确认，已完成两轮设计 review、两轮自 review 和 TDD 实现；实现
+已完成，待最终验证。
 
 ## 1. 目标与范围
 

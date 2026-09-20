@@ -17,3 +17,5 @@ compatibility guarantees before the v1.0 stable release.
 - Added architecture, documentation, and offline CI quality gates.
 - Added the Requirement and AcceptanceCriterion domain contracts with deterministic
   validation diagnostics and bilingual contract documentation.
+- Added the QualityRisk and TestObligation domain contracts with deterministic
+  validation diagnostics and bilingual contract documentation.
