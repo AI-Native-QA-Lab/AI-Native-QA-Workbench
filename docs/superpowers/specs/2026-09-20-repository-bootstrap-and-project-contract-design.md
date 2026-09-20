@@ -110,7 +110,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  defaultLocale: ProjectLocale;
+  defaultLocale: string;
 }
 ```
 
@@ -169,7 +169,8 @@ export type StoreDiagnosticCode =
   | DiagnosticCode
   | "PROJECT_FILE_MISSING"
   | "PROJECT_FILE_MALFORMED"
-  | "PROJECT_FILE_EXISTS";
+  | "PROJECT_FILE_EXISTS"
+  | "PROJECT_UNKNOWN_KEY";
 
 export interface StoreDiagnostic {
   code: StoreDiagnosticCode;
@@ -207,7 +208,8 @@ export interface InitProjectResult {
 实现可以在该边界使用 YAML 和 schema library，但这些依赖不得进入 `domain`。
 
 store-level diagnostics 在 domain validation code 之外使用
-`PROJECT_FILE_MISSING`、`PROJECT_FILE_MALFORMED` 和 `PROJECT_FILE_EXISTS`。
+`PROJECT_FILE_MISSING`、`PROJECT_FILE_MALFORMED`、`PROJECT_FILE_EXISTS` 和
+`PROJECT_UNKNOWN_KEY`。
 文件级错误的 path 为 `.ai-qa/project.yaml`；schema 错误使用对应的 YAML path。
 
 ## CLI contract
