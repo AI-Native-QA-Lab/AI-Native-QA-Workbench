@@ -106,7 +106,7 @@ domain representation 除显式约定的 locale 值外保持 locale-neutral：
 export type ProjectLocale = "en" | "zh-CN";
 
 export interface Project {
-  schemaVersion: "0.1";
+  schemaVersion: string;
   id: string;
   name: string;
   description: string;
@@ -162,6 +162,36 @@ export interface ProjectStore {
 }
 ```
 
+store package 的结果类型定义为：
+
+```ts
+export type StoreDiagnosticCode =
+  | DiagnosticCode
+  | "PROJECT_FILE_MISSING"
+  | "PROJECT_FILE_MALFORMED"
+  | "PROJECT_FILE_EXISTS";
+
+export interface StoreDiagnostic {
+  code: StoreDiagnosticCode;
+  message: string;
+  path: string;
+  severity: "error";
+}
+
+export interface StoreValidationResult {
+  valid: boolean;
+  project?: Project;
+  diagnostics: readonly StoreDiagnostic[];
+}
+
+export interface InitProjectResult {
+  created: boolean;
+  projectPath: string;
+  project?: Project;
+  diagnostics: readonly StoreDiagnostic[];
+}
+```
+
 行为规则：
 
 - `initProject` 只有在项目文件不存在时，才创建 `.ai-qa/` 和
@@ -176,7 +206,7 @@ export interface ProjectStore {
 
 实现可以在该边界使用 YAML 和 schema library，但这些依赖不得进入 `domain`。
 
-store-level diagnostics 在 domain validation code 之外增加以下稳定 code：
+store-level diagnostics 在 domain validation code 之外使用
 `PROJECT_FILE_MISSING`、`PROJECT_FILE_MALFORMED` 和 `PROJECT_FILE_EXISTS`。
 文件级错误的 path 为 `.ai-qa/project.yaml`；schema 错误使用对应的 YAML path。
 
