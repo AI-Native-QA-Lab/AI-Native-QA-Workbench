@@ -155,10 +155,10 @@ describe("validateQualityRisk", () => {
   );
 
   it.each([
-    ["id", 42],
-    ["requirementId", null],
-    ["statement", 42],
-  ])("returns a diagnostic for malformed %s", (field, value) => {
+    ["id", 42, "QUALITY_RISK_ID_INVALID", "id"],
+    ["requirementId", null, "QUALITY_RISK_REQUIREMENT_ID_INVALID", "requirementId"],
+    ["statement", 42, "QUALITY_RISK_STATEMENT_EMPTY", "statement"],
+  ])("returns a diagnostic for malformed %s", (field, value, code, path) => {
     const risk = {
       id: "risk-1",
       requirementId: "login",
@@ -167,7 +167,13 @@ describe("validateQualityRisk", () => {
     } as unknown as QualityRisk;
 
     expect(() => validateQualityRisk(risk)).not.toThrow();
-    expect(validateQualityRisk(risk).valid).toBe(false);
+    expect(
+      validateQualityRisk(risk).diagnostics.map(({ code, path, severity }) => ({
+        code,
+        path,
+        severity,
+      })),
+    ).toEqual([{ code, path, severity: "error" }]);
   });
 });
 
@@ -211,7 +217,7 @@ describe("validateTestObligation", () => {
     const obligation: TestObligation = {
       id: "login-idempotency-check",
       riskId: "login-risk",
-      statement: "验证重复提交不会创建重复订单\n验证失败时有可观察证据",
+      statement: "  验证重复提交不会创建重复订单\n验证失败时有可观察证据  ",
     };
     const before = structuredClone(obligation);
 
@@ -260,10 +266,10 @@ describe("validateTestObligation", () => {
   );
 
   it.each([
-    ["id", 42],
-    ["riskId", null],
-    ["statement", 42],
-  ])("returns a diagnostic for malformed %s", (field, value) => {
+    ["id", 42, "TEST_OBLIGATION_ID_INVALID", "id"],
+    ["riskId", null, "TEST_OBLIGATION_RISK_ID_INVALID", "riskId"],
+    ["statement", 42, "TEST_OBLIGATION_STATEMENT_EMPTY", "statement"],
+  ])("returns a diagnostic for malformed %s", (field, value, code, path) => {
     const obligation = {
       id: "obligation-1",
       riskId: "login-risk",
@@ -272,7 +278,13 @@ describe("validateTestObligation", () => {
     } as unknown as TestObligation;
 
     expect(() => validateTestObligation(obligation)).not.toThrow();
-    expect(validateTestObligation(obligation).valid).toBe(false);
+    expect(
+      validateTestObligation(obligation).diagnostics.map(({ code, path, severity }) => ({
+        code,
+        path,
+        severity,
+      })),
+    ).toEqual([{ code, path, severity: "error" }]);
   });
 });
 
