@@ -1,6 +1,6 @@
 # Requirement 与 AcceptanceCriterion Domain 契约设计
 
-**状态：** 已获范围确认，已完成两轮自 review，等待书面 spec review；尚未开始实现。
+**状态：** 已获范围确认，已完成两轮自 review，已获用户确认；尚未开始实现。
 
 ## 1. 目标与当前理解
 
