@@ -25,6 +25,14 @@ export interface TestObligation {
   statement: string;
 }
 
+export interface TestCase {
+  id: string;
+  obligationId: string;
+  title: string;
+  steps: string;
+  expectedResult: string;
+}
+
 function diagnostic(code: DiagnosticCode, path: string, message: string): Diagnostic {
   return {
     code,
@@ -156,6 +164,55 @@ export function validateTestObligation(obligation: TestObligation): ValidationRe
         "TEST_OBLIGATION_STATEMENT_EMPTY",
         "statement",
         "Test obligation statement must not be empty.",
+      ),
+    );
+  }
+
+  return {
+    valid: diagnostics.length === 0,
+    diagnostics,
+  };
+}
+
+export function validateTestCase(testCase: TestCase): ValidationResult {
+  const candidate = (testCase ?? {}) as Partial<TestCase>;
+  const diagnostics: Diagnostic[] = [];
+
+  if (!isValidKebabCaseId(candidate.id)) {
+    diagnostics.push(diagnostic("TEST_CASE_ID_INVALID", "id", "Test case id is invalid."));
+  }
+
+  if (!isValidKebabCaseId(candidate.obligationId)) {
+    diagnostics.push(
+      diagnostic(
+        "TEST_CASE_OBLIGATION_ID_INVALID",
+        "obligationId",
+        "Test case obligationId is invalid.",
+      ),
+    );
+  }
+
+  if (typeof candidate.title !== "string" || candidate.title.trim().length === 0) {
+    diagnostics.push(
+      diagnostic("TEST_CASE_TITLE_EMPTY", "title", "Test case title must not be empty."),
+    );
+  }
+
+  if (typeof candidate.steps !== "string" || candidate.steps.trim().length === 0) {
+    diagnostics.push(
+      diagnostic("TEST_CASE_STEPS_EMPTY", "steps", "Test case steps must not be empty."),
+    );
+  }
+
+  if (
+    typeof candidate.expectedResult !== "string" ||
+    candidate.expectedResult.trim().length === 0
+  ) {
+    diagnostics.push(
+      diagnostic(
+        "TEST_CASE_EXPECTED_RESULT_EMPTY",
+        "expectedResult",
+        "Test case expectedResult must not be empty.",
       ),
     );
   }
