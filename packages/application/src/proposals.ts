@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   validateQualitySnapshot,
   type Diagnostic,
@@ -7,7 +9,12 @@ import {
 import type { ProjectStore, StoreDiagnostic } from "@ai-native-qa-workbench/project-store";
 
 export type ProposalEntityType =
-  "acceptanceCriterion" | "qualityRisk" | "testObligation" | "testCase" | "traceLink";
+  | "requirement"
+  | "acceptanceCriterion"
+  | "qualityRisk"
+  | "testObligation"
+  | "testCase"
+  | "traceLink";
 
 export type QualityOperation =
   | { kind: "create"; entityType: ProposalEntityType; entity: unknown }
@@ -40,6 +47,7 @@ export interface ApplyProposalResult {
 }
 
 const collectionFor: Record<ProposalEntityType, keyof QualitySnapshot> = {
+  requirement: "requirements",
   acceptanceCriterion: "acceptanceCriteria",
   qualityRisk: "qualityRisks",
   testObligation: "testObligations",
@@ -48,6 +56,7 @@ const collectionFor: Record<ProposalEntityType, keyof QualitySnapshot> = {
 };
 
 const proposalEntityTypes = new Set<ProposalEntityType>([
+  "requirement",
   "acceptanceCriterion",
   "qualityRisk",
   "testObligation",
@@ -86,7 +95,7 @@ export function createProposal(
   _snapshot: QualitySnapshot,
   operations: QualityOperation[],
   baseRevision: string,
-  id = `proposal-${crypto.randomUUID()}`,
+  id = `proposal-${randomUUID()}`,
 ): ChangeProposal {
   return {
     id,
@@ -132,13 +141,15 @@ export function validateChangeProposal(
       diagnostic("PROPOSAL_INVALID_STATUS", "status", "Proposal status is invalid."),
     );
   }
+  const review =
+    candidate.review !== null && typeof candidate.review === "object"
+      ? (candidate.review as Partial<HumanReview>)
+      : undefined;
   if (
     (candidate.status === "approved" ||
       candidate.status === "partially-approved" ||
       candidate.status === "applied") &&
-    (!candidate.review ||
-      typeof candidate.review.reviewer !== "string" ||
-      candidate.review.reviewer.trim().length === 0)
+    (!review || typeof review.reviewer !== "string" || review.reviewer.trim().length === 0)
   ) {
     diagnostics.push(
       diagnostic(
@@ -147,6 +158,68 @@ export function validateChangeProposal(
         "A human review is required before approval or apply.",
       ),
     );
+  }
+  if (review && typeof review.reviewer === "string" && review.reviewer.trim().length > 0) {
+    if (candidate.status === "approved" && review.decision !== "approve") {
+      diagnostics.push(
+        diagnostic(
+          "PROPOSAL_REVIEW_OPERATION_INVALID",
+          "review.decision",
+          "Approved proposals require an approve review decision.",
+        ),
+      );
+    }
+    if (candidate.status === "rejected" && review.decision !== "reject") {
+      diagnostics.push(
+        diagnostic(
+          "PROPOSAL_REVIEW_OPERATION_INVALID",
+          "review.decision",
+          "Rejected proposals require a reject review decision.",
+        ),
+      );
+    }
+    if (candidate.status === "partially-approved") {
+      const indexes = review.approvedOperationIndexes;
+      if (review.decision !== "partial") {
+        diagnostics.push(
+          diagnostic(
+            "PROPOSAL_REVIEW_OPERATION_INVALID",
+            "review.decision",
+            "Partially-approved proposals require a partial review decision.",
+          ),
+        );
+      }
+      if (!Array.isArray(indexes) || indexes.length === 0) {
+        diagnostics.push(
+          diagnostic(
+            "PROPOSAL_REVIEW_OPERATION_INVALID",
+            "review.approvedOperationIndexes",
+            "Partial review must approve at least one operation.",
+          ),
+        );
+      } else if (
+        indexes.some(
+          (index) =>
+            !Number.isInteger(index) || index < 0 || index >= (candidate.operations?.length ?? 0),
+        )
+      ) {
+        diagnostics.push(
+          diagnostic(
+            "PROPOSAL_REVIEW_OPERATION_INVALID",
+            "review.approvedOperationIndexes",
+            "Partial review contains an invalid operation index.",
+          ),
+        );
+      } else if (new Set(indexes).size !== indexes.length) {
+        diagnostics.push(
+          diagnostic(
+            "PROPOSAL_REVIEW_OPERATION_INVALID",
+            "review.approvedOperationIndexes",
+            "Partial review contains a duplicate operation index.",
+          ),
+        );
+      }
+    }
   }
 
   const seenCreates = new Set<string>();
@@ -253,11 +326,22 @@ export function validateChangeProposal(
 }
 
 export function reviewProposal(proposal: ChangeProposal, review: HumanReview): ChangeProposal {
-  if (review.reviewer.trim().length === 0) throw new Error("Reviewer is required.");
+  if (typeof review.reviewer !== "string" || review.reviewer.trim().length === 0) {
+    throw new Error("Reviewer is required.");
+  }
   if (review.decision === "partial") {
     const indexes = review.approvedOperationIndexes ?? [];
+    if (indexes.length === 0) {
+      throw new Error("Partial review must approve at least one operation.");
+    }
     if (indexes.some((index) => index < 0 || index >= proposal.operations.length)) {
       throw new Error("Partial review contains an invalid operation index.");
+    }
+    if (indexes.some((index) => !Number.isInteger(index))) {
+      throw new Error("Partial review contains an invalid operation index.");
+    }
+    if (new Set(indexes).size !== indexes.length) {
+      throw new Error("Partial review contains a duplicate operation index.");
     }
   }
 

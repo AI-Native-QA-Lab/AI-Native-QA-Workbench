@@ -19,13 +19,22 @@ export interface ProposalView {
   operations: unknown[];
 }
 
+export interface DecisionView {
+  applied: boolean;
+  proposal: ProposalView;
+  phase?: string;
+}
+
 export interface WorkbenchApi {
   getProject(): Promise<{ project: ProjectView }>;
   getQuality(): Promise<{ quality: QualityView }>;
   analyze(input: { requirementId: string; outputLocale: "en" | "zh-CN" }): Promise<{
     proposal: ProposalView;
   }>;
-  decide(id: string, input: { reviewer: string; decision: "approve" | "reject" }): Promise<unknown>;
+  decide(
+    id: string,
+    input: { reviewer: string; decision: "approve" | "reject" },
+  ): Promise<DecisionView>;
 }
 
 async function request<T>(baseUrl: string, path: string, init?: RequestInit): Promise<T> {

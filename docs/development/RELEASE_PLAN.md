@@ -1,5 +1,11 @@
 # Release Plan
 
+## 当前发布状态
+
+-   `v0.1.0`（2026-09-21）是 Bootstrap Release，已同步项目仓库与上游仓库。
+-   v0.1 MVP 剩余能力已在本地完成实现收口，但本轮不自动创建新的 tag 或 GitHub Release。
+-   后续若发布 v0.1 MVP closeout，应沿用当前 Contract、CHANGELOG、验证记录和 CI 结果，并明确它与 Bootstrap Release 的区别。
+
 ## Pre-1.0
 
 每个版本必须： - 明确 Scope / Non-goals - 对应 GitHub Milestone - 通过

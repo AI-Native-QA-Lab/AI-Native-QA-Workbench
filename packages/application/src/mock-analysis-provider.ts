@@ -105,7 +105,7 @@ export function createModelRequirementAnalysisProvider(
   return {
     async propose({ requirement, outputLocale }) {
       const response = await provider.generate({
-        system: "Return only a JSON array of valid quality operations.",
+        system: `Return only a JSON array of valid quality operations. Use ${outputLocale} for user-facing text.`,
         prompt: `Analyze requirement ${requirement.id}.`,
         outputLocale,
       });

@@ -116,4 +116,37 @@ describe("ChangeProposal", () => {
       review: { decision: "partial", approvedOperationIndexes: [0] },
     });
   });
+
+  it("rejects forged review status and empty or duplicate partial approvals", () => {
+    const proposal = createProposal(
+      emptySnapshot(),
+      [
+        {
+          kind: "create",
+          entityType: "acceptanceCriterion",
+          entity: { id: "checkout-total", requirementId: "checkout", statement: "Total" },
+        },
+      ],
+      "revision-1",
+    );
+
+    expect(
+      validateChangeProposal({
+        ...proposal,
+        status: "approved",
+        review: { reviewer: "nao", decision: "reject" },
+      }).diagnostics,
+    ).toContainEqual(expect.objectContaining({ code: "PROPOSAL_REVIEW_OPERATION_INVALID" }));
+
+    expect(() => reviewProposal(proposal, { reviewer: "nao", decision: "partial" })).toThrow(
+      "at least one",
+    );
+    expect(() =>
+      reviewProposal(proposal, {
+        reviewer: "nao",
+        decision: "partial",
+        approvedOperationIndexes: [0, 0],
+      }),
+    ).toThrow("duplicate");
+  });
 });

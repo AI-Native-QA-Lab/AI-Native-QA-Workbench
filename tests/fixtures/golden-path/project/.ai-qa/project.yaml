@@ -1,0 +1,6 @@
+schemaVersion: "0.1"
+project:
+  id: golden-path
+  name: Golden Path Fixture
+  description: Offline browser fixture
+  defaultLocale: en

@@ -61,8 +61,5 @@ export interface ProjectStore {
 
   validateQuality(rootDirectory: string): Promise<StoreValidationResult>;
 
-  writeQuality(
-    rootDirectory: string,
-    projectQuality: QualitySnapshot,
-  ): Promise<QualityWriteResult>;
+  writeQuality(rootDirectory: string, projectQuality: QualitySnapshot): Promise<QualityWriteResult>;
 }

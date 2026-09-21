@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkbenchPage, type WorkbenchApi } from "@ai-native-qa-workbench/web";
 
@@ -37,6 +37,10 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
+afterEach(() => {
+  cleanup();
+});
+
 describe("WorkbenchPage", () => {
   it("defaults to English, switches to zh-CN, and renders quality counts", async () => {
     render(<WorkbenchPage api={api()} />);
@@ -67,5 +71,47 @@ describe("WorkbenchPage", () => {
       }),
     );
     expect(screen.getByRole("heading", { name: "QA Workbench" })).toBeTruthy();
+  });
+
+  it("renders the applied server status and refreshes quality after approval", async () => {
+    const client = api();
+    client.getQuality = vi
+      .fn()
+      .mockResolvedValueOnce({
+        valid: true,
+        quality: {
+          requirements: [{ id: "checkout", title: "Checkout" }],
+          acceptanceCriteria: [],
+          qualityRisks: [],
+          testObligations: [],
+          testCases: [],
+          traceLinks: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        valid: true,
+        quality: {
+          requirements: [{ id: "checkout", title: "Checkout" }],
+          acceptanceCriteria: [{ id: "checkout-behavior" }],
+          qualityRisks: [],
+          testObligations: [],
+          testCases: [],
+          traceLinks: [],
+        },
+      });
+    client.decide = vi.fn().mockResolvedValue({
+      applied: true,
+      proposal: { id: "proposal-1", status: "applied", operations: [] },
+    });
+    render(<WorkbenchPage api={client} />);
+    await screen.findByRole("heading", { name: "QA Workbench" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Analyze requirement" }));
+    await screen.findByText("Status: proposed");
+    fireEvent.click(screen.getByRole("button", { name: "Approve proposal" }));
+
+    expect(await screen.findByText("Status: applied")).toBeTruthy();
+    expect(await screen.findByText("Acceptance criteria: 1")).toBeTruthy();
+    expect(client.getQuality).toHaveBeenCalledTimes(2);
   });
 });

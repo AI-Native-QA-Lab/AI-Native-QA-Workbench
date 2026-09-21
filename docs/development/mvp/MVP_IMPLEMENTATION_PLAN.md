@@ -1,5 +1,15 @@
 # MVP / v0.1 实施计划
 
+> **状态：实现完成（2026-09-21）**。本计划中的能力已在本地 `main` 工作区完成并通过离线质量门禁与浏览器 Golden Path。`v0.1.0` 仍保留为 Bootstrap Release；是否创建新的 MVP closeout Release 需要单独的发布决策。
+
+## 实际交付范围
+
+本次一次性交付了 Project Store、QualitySnapshot/Traceability、SQLite Runtime Store、Tool Registry、MockProvider、OpenAI-compatible Provider、Agent Execution Loop、QA Task Loop、ChangeProposal/Human Review、Requirement Analysis、CLI、Fastify Local API、React/Vite Workbench、独立的 `uiLocale`/`outputLocale`、双语 Contract 和无网络 Golden Path E2E。
+
+已明确留在后续版本的范围：TestStrategy、TestRun、Evidence、QualityAssessment、QualityGate、Domain Event、MCP/GitHub/Jira/CI 结果导入、远程运行、多用户、RBAC、PostgreSQL 和 Shared Workbench。
+
+本次 Gate 的证据只覆盖源码静态检查、类型/构建、单元/Contract/集成测试、架构检查、文档检查和 MockProvider 驱动的本地浏览器流程；不把它们表述为真实 LLM、外部系统、生产部署或业务验收证据。
+
 ## 目标
 
 以 TDD 方式完成第一条真实可用、可 Review、可追溯的 Local-first Quality

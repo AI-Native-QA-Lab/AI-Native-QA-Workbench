@@ -195,11 +195,11 @@
 
 **步骤：**
 
-- [ ] 先写 Playwright Golden Path RED test，确认缺少 web/server 入口时失败。
-- [ ] 实现 fixture bootstrap、Vite preview、Fastify API 和 Playwright webServer 配置，运行无网络 E2E。
-- [ ] 更新 CI 安装 browser、运行 `pnpm check` 和 `pnpm test:e2e`，CI 不需要真实 LLM。
-- [ ] 同步双语 Contract、README、MVP、Roadmap、DoD 和 CHANGELOG，明确静态/Mock/E2E 证据边界。
-- [ ] 运行 `pnpm check`、`pnpm test:e2e`、`git diff --check`，提交 `feat: complete v0.1 local first mvp`。
+- [x] 先写 Playwright Golden Path test，并通过失败回归发现并修复 Fixture 状态污染。
+- [x] 实现 fixture bootstrap、Vite preview、Fastify API 和 Playwright webServer 配置，运行无网络 E2E。
+- [x] 更新 CI 安装 browser、运行 `pnpm check` 和 `pnpm test:e2e`，CI 不需要真实 LLM。
+- [x] 同步双语 Contract、README、MVP、Roadmap、DoD 和 CHANGELOG，明确静态/Mock/E2E 证据边界。
+- [x] 运行 `pnpm check`、`pnpm test:e2e`、`git diff --check`，提交 `feat: complete v0.1 local first mvp`。
 
 ### Task 9：最终 v0.1 MVP Gate
 

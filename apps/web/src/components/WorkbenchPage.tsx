@@ -53,8 +53,12 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
 
   async function decide(decision: "approve" | "reject"): Promise<void> {
     if (!proposal) return;
-    await props.api.decide(proposal.id, { reviewer: "human", decision });
-    setProposal({ ...proposal, status: decision === "approve" ? "approved" : "rejected" });
+    const result = await props.api.decide(proposal.id, { reviewer: "human", decision });
+    setProposal(result.proposal);
+    if (result.applied) {
+      const refreshed = await props.api.getQuality();
+      setQuality(refreshed.quality);
+    }
   }
 
   return (

@@ -7,6 +7,7 @@ export function ProposalReview(props: {
   onDecision: (decision: "approve" | "reject") => void;
 }) {
   const locale = props.locale ?? "en";
+  const actionable = props.proposal.status === "proposed";
   return (
     <section className="proposal-review" aria-labelledby="proposal-review-heading">
       <h2 id="proposal-review-heading">{translate(locale, "proposalReview")}</h2>
@@ -18,10 +19,10 @@ export function ProposalReview(props: {
       </p>
       <p>{props.proposal.operations.length} operations</p>
       <div className="actions">
-        <button type="button" onClick={() => props.onDecision("approve")}>
+        <button type="button" disabled={!actionable} onClick={() => props.onDecision("approve")}>
           {translate(locale, "approve")}
         </button>
-        <button type="button" onClick={() => props.onDecision("reject")}>
+        <button type="button" disabled={!actionable} onClick={() => props.onDecision("reject")}>
           {translate(locale, "reject")}
         </button>
       </div>
