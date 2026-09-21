@@ -62,7 +62,7 @@ decisions remain separate.
 
 ## Technology Stack
 
--   TypeScript / Node.js 20+
+-   TypeScript / Node.js 22.22.2+
 -   pnpm + Turborepo
 -   React + Vite
 -   Fastify

@@ -24,6 +24,9 @@ compatibility guarantees before the v1.0 stable release.
 - Reconciled the v0.1 implementation plan with the delivered scope; streaming,
   provider-tool orchestration, graph indexes, model invocation telemetry, and
   durable QualityTaskRun remain future capabilities.
+- Aligned CI and the supported Node.js baseline with the current `better-sqlite3`
+  and `jsdom` dependencies (`22.22.2+`), and removed a Node 22-only API from the
+  architecture test path.
 
 ## [0.1.0] - 2026-09-21
 

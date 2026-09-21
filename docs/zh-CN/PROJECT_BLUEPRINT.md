@@ -80,7 +80,7 @@ AI 可以生成 QualityAssessment，但不能冒充 HumanDecision。
 
 ## 技术栈
 
--   TypeScript / Node.js 20+
+-   TypeScript / Node.js 22.22.2+
 -   pnpm + Turborepo
 -   React + Vite
 -   Fastify

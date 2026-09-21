@@ -6,7 +6,7 @@
 
 **架构：** 保持 Domain、Project Store、Application、Runtime Store、Agent、Provider、Tool、Server 和 UI 的单向依赖。`.ai-qa/quality.yaml` 保存项目质量数据；SQLite 只保存可重建运行时数据；所有 AI 写入经过 ChangeProposal 和显式 Human Review。
 
-**技术栈：** TypeScript、Node.js 20+、pnpm、Turborepo、YAML/Zod、better-sqlite3、Fastify、React、Vite、React Router、i18next、Vitest、Testing Library、Playwright。
+**技术栈：** TypeScript、Node.js 22.22.2+、pnpm、Turborepo、YAML/Zod、better-sqlite3、Fastify、React、Vite、React Router、i18next、Vitest、Testing Library、Playwright。
 
 **规格：** `docs/superpowers/specs/2026-09-21-v0-1-mvp-completion-design.md`
 

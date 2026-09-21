@@ -16,7 +16,7 @@ Contract 文档，为后续 Traceability 建图提供稳定的最小基础。
 helper 是 Domain 内部模块，不从 package 公共入口导出。当前切片不接触
 `.ai-qa/`、filesystem、YAML、SQLite、Provider、AI Runtime 或 UI。
 
-**Tech Stack:** Node.js 20+、pnpm、TypeScript、Vitest、ESLint、Prettier、
+**Tech Stack:** Node.js 22.22.2+、pnpm、TypeScript、Vitest、ESLint、Prettier、
 Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
 **Spec:** `docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md`

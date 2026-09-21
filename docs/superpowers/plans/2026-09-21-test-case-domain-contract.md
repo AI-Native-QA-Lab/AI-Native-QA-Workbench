@@ -6,7 +6,7 @@
 
 **Architecture:** 保持 `apps/cli → packages/project-store → packages/domain` 依赖方向。`TestCase` 和 validator 继续放在现有 `packages/domain/src/quality-domain.ts`，复用 `isValidKebabCaseId`、`Diagnostic` 和 `ValidationResult`。本切片只建立 `TestObligation → TestCase` 的显式内存关系，不把 TestStrategy、TraceLink、Project Store、持久化、执行状态或 UI 逻辑放入单实体 validator。
 
-**Tech Stack:** Node.js 20+、pnpm、TypeScript、Vitest、ESLint、Prettier、Turborepo；Domain 使用纯 TypeScript，测试离线执行。
+**Tech Stack:** Node.js 22.22.2+、pnpm、TypeScript、Vitest、ESLint、Prettier、Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
 **Spec:** `docs/superpowers/specs/2026-09-21-test-case-domain-contract-design.md`
 

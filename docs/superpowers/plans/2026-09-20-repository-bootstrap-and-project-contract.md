@@ -18,7 +18,7 @@
 TypeScript 的 Project 校验与 ID 派生。依赖方向只能是 CLI → Project Store →
 Domain。
 
-**技术栈：** Node.js 20+、pnpm、Turborepo、TypeScript、YAML、Zod、Vitest、
+**技术栈：** Node.js 22.22.2+、pnpm、Turborepo、TypeScript、YAML、Zod、Vitest、
 ESLint、Prettier、tsx、GitHub Actions。
 
 **规格：** docs/superpowers/specs/2026-09-20-repository-bootstrap-and-project-contract-design.md
@@ -170,7 +170,7 @@ ESLint、Prettier、tsx、GitHub Actions。
   ~~~
 
   根 package.json 必须包含 private: true、type: module、
-  packageManager: pnpm@12.4.2、engines.node: >=20，并包含以下脚本：
+  packageManager: pnpm@12.4.2、engines.node: >=22.22.2，并包含以下脚本：
 
   ~~~json
   {
@@ -577,7 +577,7 @@ ESLint、Prettier、tsx、GitHub Actions。
 
 - [ ] **Step 5: 写离线 CI workflow**
 
-  .github/workflows/ci.yml 使用 Node 20、pnpm cache 和
+  .github/workflows/ci.yml 使用 Node 22、pnpm cache 和
   pnpm install --frozen-lockfile，执行 pnpm check。触发条件为所有 pull request
   和 main push；权限只有 contents: read；不安装浏览器、不配置 LLM secret、不
   调用 provider。
