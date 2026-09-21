@@ -7,6 +7,27 @@ compatibility guarantees before the v1.0 stable release.
 
 ## [Unreleased]
 
+- Completed the local-first v0.1 MVP implementation: quality snapshot and
+  traceability, atomic ChangeProposal apply with explicit Human Review, SQLite
+  runtime state, Tool/Provider/Agent contracts, QA Task completion loop,
+  Requirement Analysis, CLI commands, local API, and React/Vite Workbench UI.
+- Added independent English and `zh-CN` UI/provider locale handling, bilingual
+  public contracts, and a deterministic no-network Playwright Golden Path.
+- Expanded CI to install Chromium, run all offline quality gates, and execute
+  the Golden Path browser test without a live LLM.
+- Kept TestRun/Evidence/QualityAssessment/QualityGate/Domain Events, external
+  integrations, remote runtime, and PostgreSQL outside the v0.1 gate; these
+  remain roadmap work rather than hidden implementation evidence.
+- Closed the strict review findings for TraceLink endpoint references and IDs,
+  safe project initialization, ordered proposal validation, HTTP boundary
+  validation, and mandatory Tool Runtime Store audit context.
+- Reconciled the v0.1 implementation plan with the delivered scope; streaming,
+  provider-tool orchestration, graph indexes, model invocation telemetry, and
+  durable QualityTaskRun remain future capabilities.
+- Aligned CI and the supported Node.js baseline with the current `better-sqlite3`
+  and `jsdom` dependencies (`22.22.2+`), and removed a Node 22-only API from the
+  architecture test path.
+
 ## [0.1.0] - 2026-09-21
 
 - Imported the GitHub repository Blueprint and added the PolyForm

@@ -1,5 +1,11 @@
 # 仓库启动与项目文件契约实施计划
 
+> **历史记录（2026-09-21）：** 本文保留 v0.1 Bootstrap 初始垂直切片的原始
+> 执行清单和当时的勾选状态。该阶段已经由后续实现和
+> [`v0.1 MVP 完成实施计划`](2026-09-21-v0-1-mvp-completion.md) 接管；本文中
+> 未勾选的历史步骤不再作为当前 v0.1 MVP closeout 的完成门禁。当前状态以最新
+> 完成设计、验证记录和实际提交为准。
+
 > **给 agent worker：** 必须使用 superpowers:executing-plans（或
 > superpowers:subagent-driven-development）逐任务执行本计划。每个步骤使用
 > checkbox 跟踪，并在进入下一任务前完成该任务的验证。
@@ -12,7 +18,7 @@
 TypeScript 的 Project 校验与 ID 派生。依赖方向只能是 CLI → Project Store →
 Domain。
 
-**技术栈：** Node.js 20+、pnpm、Turborepo、TypeScript、YAML、Zod、Vitest、
+**技术栈：** Node.js 22.22.2+、pnpm、Turborepo、TypeScript、YAML、Zod、Vitest、
 ESLint、Prettier、tsx、GitHub Actions。
 
 **规格：** docs/superpowers/specs/2026-09-20-repository-bootstrap-and-project-contract-design.md
@@ -164,7 +170,7 @@ ESLint、Prettier、tsx、GitHub Actions。
   ~~~
 
   根 package.json 必须包含 private: true、type: module、
-  packageManager: pnpm@12.4.2、engines.node: >=20，并包含以下脚本：
+  packageManager: pnpm@12.4.2、engines.node: >=22.22.2，并包含以下脚本：
 
   ~~~json
   {
@@ -571,7 +577,7 @@ ESLint、Prettier、tsx、GitHub Actions。
 
 - [ ] **Step 5: 写离线 CI workflow**
 
-  .github/workflows/ci.yml 使用 Node 20、pnpm cache 和
+  .github/workflows/ci.yml 使用 Node 22、pnpm cache 和
   pnpm install --frozen-lockfile，执行 pnpm check。触发条件为所有 pull request
   和 main push；权限只有 contents: read；不安装浏览器、不配置 LLM secret、不
   调用 provider。

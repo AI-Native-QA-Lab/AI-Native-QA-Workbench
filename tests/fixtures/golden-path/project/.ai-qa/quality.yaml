@@ -1,0 +1,11 @@
+schemaVersion: "0.1"
+quality:
+  requirements:
+    - id: checkout
+      title: Checkout
+      description: Checkout flow
+  acceptanceCriteria: []
+  qualityRisks: []
+  testObligations: []
+  testCases: []
+  traceLinks: []

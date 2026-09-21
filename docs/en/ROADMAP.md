@@ -1,18 +1,30 @@
 # Roadmap
 
+## Current status (2026-09-21)
+
+-   `v0.1.0` is the Bootstrap Release: repository structure, Project File
+    Contract, initial domain contracts, CLI bootstrap, CI, and license.
+-   The remaining v0.1 MVP implementation is complete in the local `main`
+    worktree and has passed the offline quality gates plus the deterministic
+    browser Golden Path. This is an implementation closeout, not a new GitHub
+    Release yet.
+-   MockProvider and local fixtures prove the deterministic path only. Live
+    model, external integrations, production deployment, and business-quality
+    evidence remain outside this gate.
+
 ## M0 --- Repository Bootstrap
 
 Repository structure, CI, TDD foundation, architecture checks,
 documentation structure, AGENTS.md, i18n foundation.
 
-## v0.1 --- MVP / Local-first Foundation
+## v0.1 --- MVP / Local-first Foundation (implementation complete)
 
 File-first Project Store, core Quality Domain, CLI, SQLite runtime,
 Agent Execution Loop, QA Task Loop, ChangeProposal, Human Review,
 Requirement Analysis, Traceability, MockProvider,
 OpenAICompatibleProvider, EN/zh-CN, deterministic Golden Path.
 
-## v0.2 --- Evidence Foundation
+## v0.2 --- Evidence Foundation (next implementation target)
 
 TestRun, Evidence, provenance, artifact reference/checksum,
 JUnit/Playwright/Pytest import adapters, evidence integrity.

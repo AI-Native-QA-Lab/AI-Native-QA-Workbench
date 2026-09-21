@@ -1,6 +1,8 @@
 import { isValidKebabCaseId } from "./identifiers.js";
 import type { Diagnostic, DiagnosticCode, ValidationResult } from "./project.js";
 
+export const QUALITY_SCHEMA_VERSION = "0.1" as const;
+
 export interface Requirement {
   id: string;
   title: string;
@@ -31,6 +33,30 @@ export interface TestCase {
   title: string;
   steps: string;
   expectedResult: string;
+}
+
+export type QualityEntityType =
+  "requirement" | "acceptance-criterion" | "quality-risk" | "test-obligation" | "test-case";
+
+export type TraceLinkRelation = "satisfies" | "mitigates" | "verifies";
+
+export interface TraceLink {
+  id: string;
+  fromType: QualityEntityType;
+  fromId: string;
+  toType: QualityEntityType;
+  toId: string;
+  relation: TraceLinkRelation;
+}
+
+export interface QualitySnapshot {
+  schemaVersion: typeof QUALITY_SCHEMA_VERSION;
+  requirements: Requirement[];
+  acceptanceCriteria: AcceptanceCriterion[];
+  qualityRisks: QualityRisk[];
+  testObligations: TestObligation[];
+  testCases: TestCase[];
+  traceLinks: TraceLink[];
 }
 
 function diagnostic(code: DiagnosticCode, path: string, message: string): Diagnostic {
@@ -216,6 +242,327 @@ export function validateTestCase(testCase: TestCase): ValidationResult {
       ),
     );
   }
+
+  return {
+    valid: diagnostics.length === 0,
+    diagnostics,
+  };
+}
+
+type QualityCollectionKey =
+  | "requirements"
+  | "acceptanceCriteria"
+  | "qualityRisks"
+  | "testObligations"
+  | "testCases"
+  | "traceLinks";
+
+const qualityCollectionCodes: Record<QualityCollectionKey, DiagnosticCode> = {
+  requirements: "QUALITY_REQUIREMENTS_NOT_ARRAY",
+  acceptanceCriteria: "QUALITY_ACCEPTANCE_CRITERIA_NOT_ARRAY",
+  qualityRisks: "QUALITY_RISKS_NOT_ARRAY",
+  testObligations: "QUALITY_TEST_OBLIGATIONS_NOT_ARRAY",
+  testCases: "QUALITY_TEST_CASES_NOT_ARRAY",
+  traceLinks: "QUALITY_TRACE_LINKS_NOT_ARRAY",
+};
+
+const qualityEntityCollections: Record<
+  Exclude<QualityCollectionKey, "traceLinks">,
+  QualityEntityType
+> = {
+  requirements: "requirement",
+  acceptanceCriteria: "acceptance-criterion",
+  qualityRisks: "quality-risk",
+  testObligations: "test-obligation",
+  testCases: "test-case",
+};
+
+const traceLinkRelations: Record<
+  TraceLinkRelation,
+  ReadonlyArray<[QualityEntityType, QualityEntityType]>
+> = {
+  satisfies: [
+    ["acceptance-criterion", "requirement"],
+    ["requirement", "requirement"],
+  ],
+  mitigates: [["quality-risk", "requirement"]],
+  verifies: [
+    ["test-obligation", "quality-risk"],
+    ["test-case", "test-obligation"],
+  ],
+};
+
+function collectionDiagnostic(code: DiagnosticCode, path: string, message: string): Diagnostic {
+  return diagnostic(code, path, message);
+}
+
+function appendEntityDiagnostics(
+  diagnostics: Diagnostic[],
+  collection: Exclude<QualityCollectionKey, "traceLinks">,
+  values: unknown[],
+  validator: (value: never) => ValidationResult,
+): void {
+  const seenIds = new Set<string>();
+
+  values.forEach((value, index) => {
+    const result = validator(value as never);
+    diagnostics.push(
+      ...result.diagnostics.map((item) => ({
+        ...item,
+        path: `${collection}[${index}].${item.path}`,
+      })),
+    );
+
+    const id =
+      value !== null && typeof value === "object" && "id" in value
+        ? (value as { id?: unknown }).id
+        : undefined;
+    if (typeof id === "string") {
+      if (seenIds.has(id)) {
+        diagnostics.push(
+          collectionDiagnostic(
+            "QUALITY_DUPLICATE_ID",
+            `${collection}[${index}].id`,
+            `Duplicate ${collection} id: ${id}`,
+          ),
+        );
+      } else {
+        seenIds.add(id);
+      }
+    }
+  });
+}
+
+function entityIdSets(snapshot: Partial<QualitySnapshot>): Map<QualityEntityType, Set<string>> {
+  const sets = new Map<QualityEntityType, Set<string>>();
+  for (const collection of Object.keys(qualityEntityCollections) as Array<
+    Exclude<QualityCollectionKey, "traceLinks">
+  >) {
+    const values = snapshot[collection];
+    const ids = new Set<string>();
+    if (Array.isArray(values)) {
+      for (const value of values) {
+        if (value !== null && typeof value === "object" && "id" in value) {
+          const id = (value as { id?: unknown }).id;
+          if (typeof id === "string") ids.add(id);
+        }
+      }
+    }
+    sets.set(qualityEntityCollections[collection], ids);
+  }
+  return sets;
+}
+
+function hasAllowedTraceCombination(link: TraceLink): boolean {
+  const relations = traceLinkRelations[link.relation];
+  return relations.some(
+    ([fromType, toType]) => fromType === link.fromType && toType === link.toType,
+  );
+}
+
+export function validateQualitySnapshot(snapshot: QualitySnapshot): ValidationResult {
+  const candidate = (snapshot ?? {}) as Partial<QualitySnapshot>;
+  const diagnostics: Diagnostic[] = [];
+
+  if (candidate.schemaVersion !== QUALITY_SCHEMA_VERSION) {
+    diagnostics.push(
+      collectionDiagnostic(
+        "QUALITY_SCHEMA_UNSUPPORTED",
+        "schemaVersion",
+        `Unsupported quality schema version: ${String(candidate.schemaVersion)}`,
+      ),
+    );
+  }
+
+  const collectionKeys: QualityCollectionKey[] = [
+    "requirements",
+    "acceptanceCriteria",
+    "qualityRisks",
+    "testObligations",
+    "testCases",
+    "traceLinks",
+  ];
+  for (const collection of collectionKeys) {
+    if (!Array.isArray(candidate[collection])) {
+      diagnostics.push(
+        collectionDiagnostic(
+          qualityCollectionCodes[collection],
+          collection,
+          `${collection} must be an array.`,
+        ),
+      );
+    }
+  }
+
+  const requirements = Array.isArray(candidate.requirements) ? candidate.requirements : [];
+  const acceptanceCriteria = Array.isArray(candidate.acceptanceCriteria)
+    ? candidate.acceptanceCriteria
+    : [];
+  const qualityRisks = Array.isArray(candidate.qualityRisks) ? candidate.qualityRisks : [];
+  const testObligations = Array.isArray(candidate.testObligations) ? candidate.testObligations : [];
+  const testCases = Array.isArray(candidate.testCases) ? candidate.testCases : [];
+  const traceLinks = Array.isArray(candidate.traceLinks) ? candidate.traceLinks : [];
+
+  appendEntityDiagnostics(diagnostics, "requirements", requirements, validateRequirement);
+  appendEntityDiagnostics(
+    diagnostics,
+    "acceptanceCriteria",
+    acceptanceCriteria,
+    validateAcceptanceCriterion,
+  );
+  appendEntityDiagnostics(diagnostics, "qualityRisks", qualityRisks, validateQualityRisk);
+  appendEntityDiagnostics(diagnostics, "testObligations", testObligations, validateTestObligation);
+  appendEntityDiagnostics(diagnostics, "testCases", testCases, validateTestCase);
+
+  const ids = entityIdSets(candidate);
+  const references: Array<{
+    collection: Exclude<QualityCollectionKey, "traceLinks">;
+    referenceField: string;
+    targetType: QualityEntityType;
+    values: unknown[];
+  }> = [
+    {
+      collection: "acceptanceCriteria",
+      referenceField: "requirementId",
+      targetType: "requirement",
+      values: acceptanceCriteria,
+    },
+    {
+      collection: "qualityRisks",
+      referenceField: "requirementId",
+      targetType: "requirement",
+      values: qualityRisks,
+    },
+    {
+      collection: "testObligations",
+      referenceField: "riskId",
+      targetType: "quality-risk",
+      values: testObligations,
+    },
+    {
+      collection: "testCases",
+      referenceField: "obligationId",
+      targetType: "test-obligation",
+      values: testCases,
+    },
+  ];
+
+  for (const reference of references) {
+    reference.values.forEach((value, index) => {
+      if (value === null || typeof value !== "object") return;
+      const targetId = (value as Record<string, unknown>)[reference.referenceField];
+      if (typeof targetId === "string" && !ids.get(reference.targetType)?.has(targetId)) {
+        diagnostics.push(
+          collectionDiagnostic(
+            "QUALITY_REFERENCE_NOT_FOUND",
+            `${reference.collection}[${index}].${reference.referenceField}`,
+            `Referenced ${reference.targetType} does not exist: ${targetId}`,
+          ),
+        );
+      }
+    });
+  }
+
+  const seenTraceLinkIds = new Set<string>();
+  const seenTraceLinks = new Set<string>();
+  traceLinks.forEach((value, index) => {
+    const path = `traceLinks[${index}]`;
+    if (value === null || typeof value !== "object") {
+      diagnostics.push(
+        collectionDiagnostic("QUALITY_TRACE_LINK_INVALID", path, "Trace link must be an object."),
+      );
+      return;
+    }
+    const link = value as Partial<TraceLink>;
+    if (
+      typeof link.id !== "string" ||
+      typeof link.fromType !== "string" ||
+      typeof link.fromId !== "string" ||
+      typeof link.toType !== "string" ||
+      typeof link.toId !== "string" ||
+      typeof link.relation !== "string" ||
+      !isValidKebabCaseId(link.id) ||
+      !isValidKebabCaseId(link.fromId) ||
+      !isValidKebabCaseId(link.toId) ||
+      !Object.hasOwn(traceLinkRelations, link.relation)
+    ) {
+      diagnostics.push(
+        collectionDiagnostic("QUALITY_TRACE_LINK_INVALID", path, "Trace link shape is invalid."),
+      );
+      return;
+    }
+
+    const completeLink = link as TraceLink;
+    if (seenTraceLinkIds.has(completeLink.id)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_DUPLICATE_ID",
+          `${path}.id`,
+          `Duplicate traceLinks id: ${completeLink.id}`,
+        ),
+      );
+    } else {
+      seenTraceLinkIds.add(completeLink.id);
+    }
+
+    if (!hasAllowedTraceCombination(completeLink)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_TRACE_LINK_INVALID",
+          path,
+          "Trace link type combination is not allowed.",
+        ),
+      );
+      return;
+    }
+
+    if (!ids.get(completeLink.fromType)?.has(completeLink.fromId)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_REFERENCE_NOT_FOUND",
+          `${path}.fromId`,
+          `Referenced ${completeLink.fromType} does not exist: ${completeLink.fromId}`,
+        ),
+      );
+    }
+    if (!ids.get(completeLink.toType)?.has(completeLink.toId)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_REFERENCE_NOT_FOUND",
+          `${path}.toId`,
+          `Referenced ${completeLink.toType} does not exist: ${completeLink.toId}`,
+        ),
+      );
+    }
+
+    if (
+      completeLink.fromType === completeLink.toType &&
+      completeLink.fromId === completeLink.toId
+    ) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_TRACE_LINK_SELF_REFERENCE",
+          path,
+          "Trace link must not reference itself.",
+        ),
+      );
+    }
+
+    const key = [
+      completeLink.fromType,
+      completeLink.fromId,
+      completeLink.toType,
+      completeLink.toId,
+      completeLink.relation,
+    ].join("|");
+    if (seenTraceLinks.has(key)) {
+      diagnostics.push(
+        collectionDiagnostic("QUALITY_TRACE_LINK_DUPLICATE", path, "Duplicate trace link."),
+      );
+    } else {
+      seenTraceLinks.add(key);
+    }
+  });
 
   return {
     valid: diagnostics.length === 0,

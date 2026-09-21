@@ -1,6 +1,10 @@
 import { resolve } from "node:path";
 
 import {
+  createMockRequirementAnalysisProvider,
+  runRequirementAnalysis,
+} from "@ai-native-qa-workbench/application";
+import {
   FileProjectStore,
   PROJECT_FILE_RELATIVE_PATH,
   type ProjectStore,
@@ -9,7 +13,10 @@ import {
 
 const USAGE = `Usage:
   qaw init [--name <name>] [--description <description>] [--locale en|zh-CN] [directory]
-  qaw validate [directory]`;
+  qaw validate [directory]
+  qaw doctor [directory]
+  qaw open [directory]
+  qaw analyze <requirement-id> [directory]`;
 
 interface Output {
   write(chunk: string): void;
@@ -35,7 +42,24 @@ interface ValidateOptions {
   directory?: string;
 }
 
-type ParsedOptions = InitOptions | ValidateOptions;
+interface DoctorOptions {
+  command: "doctor";
+  directory?: string;
+}
+
+interface OpenOptions {
+  command: "open";
+  directory?: string;
+}
+
+interface AnalyzeOptions {
+  command: "analyze";
+  requirementId: string;
+  directory?: string;
+  outputLocale?: "en" | "zh-CN";
+}
+
+type ParsedOptions = InitOptions | ValidateOptions | DoctorOptions | OpenOptions | AnalyzeOptions;
 
 function parseError(message: string): Error {
   return new Error(`${message}\n\n${USAGE}`);
@@ -52,7 +76,13 @@ function requireOptionValue(argv: string[], index: number, option: string): stri
 function parseOptions(argv: string[]): ParsedOptions {
   const [command, ...tokens] = argv;
 
-  if (command !== "init" && command !== "validate") {
+  if (
+    command !== "init" &&
+    command !== "validate" &&
+    command !== "doctor" &&
+    command !== "open" &&
+    command !== "analyze"
+  ) {
     throw parseError(`Unknown command: ${command ?? ""}`);
   }
 
@@ -60,6 +90,8 @@ function parseOptions(argv: string[]): ParsedOptions {
   let name: string | undefined;
   let description: string | undefined;
   let locale: "en" | "zh-CN" | undefined;
+  let outputLocale: "en" | "zh-CN" | undefined;
+  let requirementId: string | undefined;
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
@@ -98,8 +130,26 @@ function parseOptions(argv: string[]): ParsedOptions {
       continue;
     }
 
+    if (token === "--output-locale") {
+      if (command !== "analyze") {
+        throw parseError("--output-locale is only available for analyze.");
+      }
+      const value = requireOptionValue(tokens, index, token);
+      if (value !== "en" && value !== "zh-CN") {
+        throw parseError(`Unsupported output locale: ${value}.`);
+      }
+      outputLocale = value;
+      index += 1;
+      continue;
+    }
+
     if (token.startsWith("--")) {
       throw parseError(`Unknown option: ${token}.`);
+    }
+
+    if (command === "analyze" && requirementId === undefined) {
+      requirementId = token;
+      continue;
     }
 
     if (directory !== undefined) {
@@ -108,11 +158,19 @@ function parseOptions(argv: string[]): ParsedOptions {
     directory = token;
   }
 
-  if (command === "validate") {
-    const options: ValidateOptions = { command };
+  if (command === "validate" || command === "doctor" || command === "open") {
+    const options = { command } as ValidateOptions | DoctorOptions | OpenOptions;
     if (directory !== undefined) {
       options.directory = directory;
     }
+    return options;
+  }
+
+  if (command === "analyze") {
+    if (!requirementId) throw parseError("Requirement id is required for analyze.");
+    const options: AnalyzeOptions = { command, requirementId };
+    if (directory !== undefined) options.directory = directory;
+    if (outputLocale !== undefined) options.outputLocale = outputLocale;
     return options;
   }
 
@@ -177,9 +235,67 @@ export async function runCli(argv: string[], dependencies: CliDependencies = {})
     return 0;
   }
 
+  if (options.command === "doctor") {
+    const project = await store.validateProject(rootDirectory);
+    const quality = await store.validateQuality(rootDirectory);
+    if (!project.valid) writeDiagnostics(project.diagnostics, stderr);
+    if (!quality.valid) writeDiagnostics(quality.diagnostics, stderr);
+    if (!project.valid || !quality.valid) return 1;
+    stdout.write("Doctor passed: project and quality are valid.\n");
+    return 0;
+  }
+
+  if (options.command === "open") {
+    const project = await store.validateProject(rootDirectory);
+    const quality = await store.readQuality(rootDirectory);
+    if (!project.valid) writeDiagnostics(project.diagnostics, stderr);
+    if (!quality.valid) writeDiagnostics(quality.diagnostics, stderr);
+    if (!project.valid || !quality.valid || !project.project || !quality.projectQuality) return 1;
+    stdout.write(
+      `Project: ${project.project.name} (${project.project.id})\n` +
+        `Quality: requirements=${quality.projectQuality.requirements.length} ` +
+        `acceptanceCriteria=${quality.projectQuality.acceptanceCriteria.length} ` +
+        `qualityRisks=${quality.projectQuality.qualityRisks.length} ` +
+        `testObligations=${quality.projectQuality.testObligations.length} ` +
+        `testCases=${quality.projectQuality.testCases.length} ` +
+        `traceLinks=${quality.projectQuality.traceLinks.length}\n`,
+    );
+    return 0;
+  }
+
+  if (options.command === "analyze") {
+    const quality = await store.readQuality(rootDirectory);
+    if (!quality.valid || !quality.projectQuality || !quality.revision) {
+      writeDiagnostics(quality.diagnostics, stderr);
+      return 1;
+    }
+    try {
+      const proposal = await runRequirementAnalysis(
+        {
+          snapshot: quality.projectQuality,
+          requirementId: options.requirementId,
+          baseRevision: quality.revision,
+          outputLocale: options.outputLocale ?? "en",
+        },
+        createMockRequirementAnalysisProvider(),
+      );
+      stdout.write(`${JSON.stringify(proposal)}\n`);
+      return 0;
+    } catch (error) {
+      stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      return 1;
+    }
+  }
+
   const result = await store.validateProject(rootDirectory);
   if (!result.valid) {
     writeDiagnostics(result.diagnostics, stderr);
+    return 1;
+  }
+
+  const quality = await store.validateQuality(rootDirectory);
+  if (!quality.valid) {
+    writeDiagnostics(quality.diagnostics, stderr);
     return 1;
   }
 

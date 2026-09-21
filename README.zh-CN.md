@@ -14,35 +14,61 @@ AI 参与质量工程全过程，但重要结论需要 Evidence 与 Traceability
 
 ## 快速开始
 
-当前启动切片只负责创建并校验本地项目契约：
+v0.1 MVP 在本地运行，并把项目质量数据保存在 `.ai-qa/`：
 
 ```bash
 pnpm install
 pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
+pnpm qaw doctor ./example-project
+pnpm qaw open ./example-project
 ```
 
-当前版本还没有声称实现 `doctor`、`open` 或 AI 分析流程；这些能力仍在
-Roadmap 中。
+`qaw init` 创建的是空的 `quality.yaml`，不会自动创建 Requirement。执行下面的分析
+示例前，请先在 `.ai-qa/quality.yaml` 中加入 ID 为 `checkout` 的有效 Requirement：
 
-## 当前 Bootstrap 范围
+```bash
+pnpm qaw analyze checkout ./example-project
+```
 
-当前 v0.1 Bootstrap 已实现：
+启动本地 API 和 UI：
 
-- `.ai-qa/project.yaml` Project File Contract
-- 确定性的 Domain 校验和本地文件存储
-- `qaw init` 与 `qaw validate`
-- 离线 unit、contract、integration、architecture 和 documentation
-  quality gate
+```bash
+QAW_ROOT_DIRECTORY="$PWD/example-project" pnpm --filter @ai-native-qa-workbench/server dev
+pnpm --filter @ai-native-qa-workbench/web dev
+```
 
-Agent Runtime、SQLite Runtime State、UI、Provider、Evidence 以及包含 AI
-分析的 Golden Path 仍在规划中，当前版本没有这些可用命令。
+`v0.1.0` tag 是之前的 Bootstrap Release；已完成的 v0.1 MVP 实现属于尚未发布的
+本地 closeout，closeout 提交尚未推送或作为新的 tag/Release 发布，也不会回写描述为
+该 Bootstrap tag 已包含这些能力。
+
+## 当前 v0.1 MVP 范围
+
+MVP 已实现：
+
+- `.ai-qa/project.yaml` 与 `.ai-qa/quality.yaml` Contract
+- 纯 Domain 校验、TraceLink 和确定性的 Completion Contract
+- 带 ChangeProposal、显式 Human Review 的 Project Store 原子写入
+- 与项目质量数据隔离的 SQLite Runtime State
+- Tool 权限/audit、MockProvider、OpenAI-compatible Provider 边界和 Agent Loop
+- `qaw init`、`validate`、`doctor`、`open`、`analyze`
+- 本地 Fastify API、React/Vite Workbench、英文/zh-CN UI，以及独立的
+  `uiLocale`/`outputLocale`
+- offline unit、contract、integration、architecture、documentation 和
+  Playwright Golden Path gate
+
+Evidence 执行、Quality Assessment/Gate、HumanDecision 持久化、Domain Event、
+外部集成和 Shared Workbench 仍属于后续 Roadmap。
 
 ## Local-first
 
 - `.ai-qa/`：项目质量数据 Source of Truth
-- SQLite：后续 Agent/Workflow Runtime State 能力，当前尚未实现
+- SQLite：保存 `agent_sessions`、run、step、tool run、approval、workflow 等运行时状态
 - Filesystem：大型 Evidence Artifact
 - PostgreSQL：后续 Shared Workbench 可选能力，不是当前版本依赖
 
 完整方案见 [GitHub 项目完整方案](docs/zh-CN/PROJECT_BLUEPRINT.md)。
+
+## License
+
+PolyForm Noncommercial License 1.0.0，见 [LICENSE](LICENSE)。

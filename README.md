@@ -15,16 +15,35 @@ quality work reviewable; accountable decisions remain human-controlled.
 
 ## Quick Start
 
-The current bootstrap slice creates and validates the local project contract:
+The v0.1 MVP runs locally and keeps project-quality data in `.ai-qa/`:
 
 ```bash
 pnpm install
 pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
+pnpm qaw doctor ./example-project
+pnpm qaw open ./example-project
 ```
 
-This release does not claim the later `doctor`, `open`, or AI analysis
-workflows; those remain in the roadmap.
+`qaw init` creates an empty `quality.yaml`; it does not create a Requirement.
+Add a valid Requirement with id `checkout` to `.ai-qa/quality.yaml` before
+running the example analysis:
+
+```bash
+pnpm qaw analyze checkout ./example-project
+```
+
+To start the local API and UI:
+
+```bash
+QAW_ROOT_DIRECTORY="$PWD/example-project" pnpm --filter @ai-native-qa-workbench/server dev
+pnpm --filter @ai-native-qa-workbench/web dev
+```
+
+The `v0.1.0` tag is the earlier Bootstrap release. The completed v0.1 MVP
+implementation is the unreleased local closeout; its closeout commits are not
+yet pushed or published as a new tag/Release, and the Bootstrap tag is not
+retroactively rewritten.
 
 ## Why
 
@@ -47,24 +66,30 @@ quality decisions.
 - Contract-first + TDD
 - English-first official documentation, with Chinese support
 
-## Current Bootstrap Scope
+## Current v0.1 MVP Scope
 
-The current v0.1 bootstrap implements:
+The MVP implements:
 
-- The `.ai-qa/project.yaml` Project File Contract
-- Deterministic domain validation and a local file store
-- `qaw init` and `qaw validate`
-- Offline unit, contract, integration, architecture, and documentation
-  quality gates
+- `.ai-qa/project.yaml` and `.ai-qa/quality.yaml` contracts
+- pure Domain validation, TraceLink, and deterministic Completion Contract
+- atomic Project Store writes with ChangeProposal and explicit Human Review
+- SQLite runtime state isolated from project-quality data
+- Tool permissions/audit, MockProvider, OpenAI-compatible provider boundary,
+  and Agent Execution Loop
+- `qaw init`, `validate`, `doctor`, `open`, and `analyze`
+- local Fastify API, React/Vite Workbench, English/zh-CN UI, and independent
+  `uiLocale`/`outputLocale`
+- offline unit, contract, integration, architecture, documentation, and
+  Playwright Golden Path gates
 
-Agent Runtime, SQLite runtime state, UI, providers, Evidence, and the
-Golden Path AI workflow are planned work; they are not available commands
-in this bootstrap.
+Evidence execution, Quality Assessment/Gate, HumanDecision persistence, Domain
+Events, external integrations, and Shared Workbench remain later roadmap scope.
 
 ## Storage
 
 - Project quality source of truth: `.ai-qa/` using Markdown/YAML/JSON
-- Runtime state: local SQLite, planned for a later implementation slice
+- Runtime state: local SQLite (`agent_sessions`, runs, steps, tool runs,
+  approvals, workflows)
 - Large evidence artifacts: local filesystem references
 - PostgreSQL: optional future Shared Workbench capability, not a current
   dependency
@@ -78,3 +103,7 @@ in this bootstrap.
 
 See [Project Blueprint](docs/en/PROJECT_BLUEPRINT.md) and
 [Roadmap](docs/en/ROADMAP.md).
+
+## License
+
+PolyForm Noncommercial License 1.0.0. See [LICENSE](LICENSE).

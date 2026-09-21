@@ -1,5 +1,10 @@
 # Quality Domain Requirement Contract Implementation Plan
 
+> **历史记录（2026-09-21）：** 本文记录 Requirement/AcceptanceCriterion
+> Domain 切片的原始实施过程，任务清单和末尾状态说明属于当时的执行上下文。
+> 当前 v0.1 MVP 的整体状态以 [`v0.1 MVP 完成实施计划`](2026-09-21-v0-1-mvp-completion.md)
+> 和验证记录为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 v0.1 MVP 中，以纯 TypeScript 和 TDD 交付 `Requirement` 与
@@ -11,7 +16,7 @@ Contract 文档，为后续 Traceability 建图提供稳定的最小基础。
 helper 是 Domain 内部模块，不从 package 公共入口导出。当前切片不接触
 `.ai-qa/`、filesystem、YAML、SQLite、Provider、AI Runtime 或 UI。
 
-**Tech Stack:** Node.js 20+、pnpm、TypeScript、Vitest、ESLint、Prettier、
+**Tech Stack:** Node.js 22.22.2+、pnpm、TypeScript、Vitest、ESLint、Prettier、
 Turborepo；Domain 使用纯 TypeScript，测试离线执行。
 
 **Spec:** `docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md`
@@ -510,8 +515,8 @@ Turborepo；Domain 使用纯 TypeScript，测试离线执行。
     validation diagnostics and bilingual contract documentation.
   ```
 
-  spec 状态已在本实施计划提交前更新为“已获用户确认；尚未开始实现”，Task 3
-  只需核对该状态和两轮自 review 记录仍然存在，不再重复修改 spec。
+  当时的 spec 状态曾记录为“已获用户确认；尚未开始实现”；该句只保留历史执行
+  上下文。Task 3 不再把它当作当前仓库实现状态，当前状态以最新 v0.1 验证记录为准。
 
 - [x] **Step 4: 运行文档门禁和全量回归**
 

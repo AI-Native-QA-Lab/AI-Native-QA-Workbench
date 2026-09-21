@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@ai-native-qa-workbench/application": "workspace:*",
     "@ai-native-qa-workbench/project-store": "workspace:*"
   }
 }

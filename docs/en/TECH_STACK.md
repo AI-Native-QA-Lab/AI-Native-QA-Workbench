@@ -2,7 +2,7 @@
 
 ## Core
 
-TypeScript 5.x, Node.js 20+, pnpm, Turborepo.
+TypeScript 5.x, Node.js 22.22.2+, pnpm, Turborepo.
 
 ## Frontend
 

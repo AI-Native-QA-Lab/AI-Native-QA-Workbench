@@ -3,13 +3,13 @@
 ## MVP / v0.1
 
 -   [Quality Domain Contract](QUALITY_DOMAIN_CONTRACT.md)
--   Project File Contract
--   Traceability Contract
--   Agent Runtime Contract
--   QA Task Contract
--   Model Provider Contract
--   Tool Contract
--   Change Proposal Contract
+-   [Quality File Contract](QUALITY_FILE_CONTRACT.md)
+-   [Traceability Contract](TRACEABILITY_CONTRACT.md)
+-   [Agent Runtime Contract](AGENT_RUNTIME_CONTRACT.md)
+-   [QA Task Contract](QA_TASK_CONTRACT.md)
+-   [Model Provider Contract](MODEL_PROVIDER_CONTRACT.md)
+-   [Tool Contract](TOOL_CONTRACT.md)
+-   [Change Proposal Contract](CHANGE_PROPOSAL_CONTRACT.md)
 
 ## v0.2 前
 

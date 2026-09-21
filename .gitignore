@@ -5,3 +5,5 @@ coverage/
 dist/
 node_modules/
 *.log
+output/
+test-results/

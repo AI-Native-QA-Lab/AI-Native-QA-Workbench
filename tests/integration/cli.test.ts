@@ -6,6 +6,9 @@ import { spawnSync } from "node:child_process";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { QUALITY_SCHEMA_VERSION, type QualitySnapshot } from "@ai-native-qa-workbench/domain";
+import { FileProjectStore } from "@ai-native-qa-workbench/project-store";
+
 const tsxEntry = fileURLToPath(new URL("../../node_modules/tsx/dist/cli.mjs", import.meta.url));
 const cliEntry = fileURLToPath(new URL("../../apps/cli/src/main.ts", import.meta.url));
 const temporaryDirectories: string[] = [];
@@ -84,5 +87,35 @@ describe("qaw CLI", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Usage:");
+  });
+
+  it("runs doctor, open, and analyze without mutating quality YAML", async () => {
+    const directory = await createTemporaryDirectory();
+    const initialized = runCli(["init"], directory);
+    const store = new FileProjectStore();
+    const snapshot: QualitySnapshot = {
+      schemaVersion: QUALITY_SCHEMA_VERSION,
+      requirements: [{ id: "checkout", title: "Checkout", description: "Checkout flow" }],
+      acceptanceCriteria: [],
+      qualityRisks: [],
+      testObligations: [],
+      testCases: [],
+      traceLinks: [],
+    };
+    await store.writeQuality(directory, snapshot);
+    const before = await readFile(join(directory, ".ai-qa", "quality.yaml"), "utf8");
+
+    const doctor = runCli(["doctor"], directory);
+    const opened = runCli(["open"], directory);
+    const analysis = runCli(["analyze", "checkout"], directory);
+
+    expect(initialized.status).toBe(0);
+    expect(doctor.status).toBe(0);
+    expect(doctor.stdout).toContain("Doctor passed");
+    expect(opened.status).toBe(0);
+    expect(opened.stdout).toContain("requirements=1");
+    expect(analysis.status).toBe(0);
+    expect(analysis.stdout).toContain('"status":"proposed"');
+    expect(await readFile(join(directory, ".ai-qa", "quality.yaml"), "utf8")).toBe(before);
   });
 });

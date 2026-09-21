@@ -1,0 +1,19 @@
+{
+  "name": "@ai-native-qa-workbench/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "dev": "tsx src/main.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ai-native-qa-workbench/application": "workspace:*",
+    "@ai-native-qa-workbench/model-providers": "workspace:*",
+    "@ai-native-qa-workbench/project-store": "workspace:*",
+    "fastify": "^5.6.2"
+  }
+}

@@ -1,9 +1,11 @@
 # MVP --- v0.1
 
-## Current bootstrap status
+## Current status
 
-The current v0.1 slice establishes a deterministic local foundation rather
-than the complete AI workflow.
+The v0.1.0 tag is the Bootstrap release. The remaining v0.1 MVP implementation
+is complete in the unreleased local closeout; its closeout commits have not yet
+been pushed or published as a new tag/Release, and the Bootstrap tag is not
+rewritten.
 
 ## Quick Start
 
@@ -11,18 +13,33 @@ than the complete AI workflow.
 pnpm install
 pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
+pnpm qaw doctor ./example-project
+pnpm qaw open ./example-project
 ```
 
-## Implemented
+`qaw init` creates an empty `quality.yaml`; it does not create a Requirement.
+Add a valid Requirement with id `checkout` to `.ai-qa/quality.yaml` before the
+example analysis:
 
-- `.ai-qa/project.yaml` Project File Contract
-- Project domain validation and stable project ID derivation
-- Local file store with atomic initialization and overwrite protection
-- `qaw init` and `qaw validate`
-- Offline unit, contract, integration, architecture, and documentation
-  quality gates
+```bash
+pnpm qaw analyze checkout ./example-project
+```
 
-## Planned Golden Path
+## Implemented v0.1 MVP
+
+- `.ai-qa/project.yaml` and `.ai-qa/quality.yaml` contracts
+- QualitySnapshot, TraceLink, collection validation, and atomic quality writes
+- ChangeProposal, Human Review, revision conflict detection, and deterministic
+  QA Task Completion
+- SQLite runtime store, ToolRegistry, Mock/OpenAI-compatible providers, and
+  AgentRunner
+- `qaw init`, `validate`, `doctor`, `open`, and `analyze`
+- Fastify local API, React/Vite Workbench, bilingual UI, and Playwright Golden
+  Path
+- The Workbench requires a non-empty reviewer identifier before a decision can
+  be submitted; UI locale and AI output locale remain independent.
+
+## Golden Path
 
 1. Initialize a project with `qaw init`.
 2. Create/load a Requirement.
@@ -38,24 +55,24 @@ pnpm qaw validate ./example-project
 11. `qaw validate` passes.
 12. `git diff .ai-qa/` clearly shows the quality changes.
 
-The planned path is not implemented by the current bootstrap.
+The path is implemented with MockProvider and local fixture data. It does not
+prove live LLM quality, external integrations, production deployment, or
+execution Evidence.
 
-## Planned MVP Scope
+## Deferred scope
 
-Agent Runtime, SQLite runtime state, Tool Runtime, MockProvider,
-OpenAICompatibleProvider, Agent Execution Loop, QA Task Loop, Completion
-Contract, ChangeProposal approval, Requirement Analysis, Traceability UI,
-English / zh-CN UI, and deterministic Golden Path E2E remain planned.
+TestRun, Evidence, QualityAssessment, QualityGate, Domain Events, MCP,
+GitHub/Jira, remote execution, multi-user/RBAC, PostgreSQL, and Shared
+Workbench remain deferred to v0.2/v0.3/1.x/2.x roadmap milestones.
 
-## Bootstrap exclusions
+## Evidence boundary
 
-Evidence execution adapters, Quality Gate, full Quality Engineering Loop,
-Skills, multiple native providers, MCP/GitHub/Jira, PostgreSQL,
-multi-user/RBAC, vector database, and Kubernetes are not part of the
-bootstrap slice.
+Static checks, unit/contract/integration tests, MockProvider replay, and local
+browser E2E are separate evidence classes. None is a live model replay,
+external CI result, production deployment, or Google/remote acceptance signal.
 
-## Bootstrap exit criteria
+## MVP exit criteria
 
-The Project File Contract and both CLI commands pass the offline quality
-gates. The planned Golden Path has a separate exit criterion: it must pass
-without Internet using MockProvider.
+`pnpm check` and `pnpm test:e2e` pass without a live LLM or network-dependent
+model call; Domain, Store, Runtime, Tool, Provider, Agent, QA Task, API, UI,
+i18n, architecture, and docs boundaries are covered.

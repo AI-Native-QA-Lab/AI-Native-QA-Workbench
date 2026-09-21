@@ -1,8 +1,10 @@
 # MVP --- v0.1
 
-## 当前 Bootstrap 状态
+## 当前状态
 
-当前 v0.1 先建立确定性的本地基础，不把完整 AI Workflow 提前宣称为已实现。
+`v0.1.0` tag 是 Bootstrap Release。剩余 v0.1 MVP 实现已经在尚未发布的本地
+closeout 完成；closeout 提交尚未推送或作为新的 tag/Release 发布，也不会重写
+Bootstrap tag。
 
 ## 快速开始
 
@@ -10,18 +12,29 @@
 pnpm install
 pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
+pnpm qaw doctor ./example-project
+pnpm qaw open ./example-project
 ```
 
-## 当前已实现
+`qaw init` 创建的是空的 `quality.yaml`，不会自动创建 Requirement。执行下面的分析
+示例前，请先在 `.ai-qa/quality.yaml` 中加入 ID 为 `checkout` 的有效 Requirement：
 
-- `.ai-qa/project.yaml` Project File Contract
-- Project Domain 校验和稳定的 Project ID 推导
-- 支持原子初始化和防覆盖的本地 File Store
-- `qaw init` 与 `qaw validate`
-- 离线 unit、contract、integration、architecture 和 documentation
-  quality gate
+```bash
+pnpm qaw analyze checkout ./example-project
+```
 
-## 规划中的 Golden Path
+## 已实现的 v0.1 MVP
+
+- `.ai-qa/project.yaml` 与 `.ai-qa/quality.yaml` Contract
+- QualitySnapshot、TraceLink、集合校验和质量文件原子写入
+- ChangeProposal、Human Review、revision 冲突检测和确定性 QA Task Completion
+- SQLite Runtime Store、ToolRegistry、Mock/OpenAI-compatible Provider 和 AgentRunner
+- `qaw init`、`validate`、`doctor`、`open`、`analyze`
+- Fastify 本地 API、React/Vite Workbench、双语 UI 和 Playwright Golden Path
+- Workbench 在提交决策前要求用户填写非空 reviewer 标识；UI locale 与 AI outputLocale
+  保持独立。
+
+## Golden Path
 
 1. `qaw init` 初始化项目。
 2. 创建或加载 Requirement。
@@ -36,22 +49,20 @@ pnpm qaw validate ./example-project
 11. `qaw validate` 通过。
 12. `git diff .ai-qa/` 可以清楚看到质量变化。
 
-以上 Golden Path 尚未由当前 Bootstrap 实现。
+该路径已经使用 MockProvider 和本地 fixture 实现，但不证明真实 LLM 质量、外部集成、
+生产部署或执行 Evidence。
 
-## 规划中的 MVP 范围
+## 延后范围
 
-Agent Runtime、SQLite Runtime State、Tool Runtime、MockProvider、
-OpenAICompatibleProvider、Agent Execution Loop、QA Task Loop、Completion
-Contract、ChangeProposal 审批、Requirement Analysis、Traceability UI、
-EN/zh-CN UI 和确定性的 Golden Path E2E 仍在规划中。
+TestRun、Evidence、QualityAssessment、QualityGate、Domain Event、MCP、GitHub/Jira、
+远程执行、多人/RBAC、PostgreSQL 和 Shared Workbench 延后到 v0.2/v0.3/1.x/2.x。
 
-## Bootstrap 不包含
+## 证据边界
 
-Evidence 执行适配、Quality Gate、完整 Quality Engineering Loop、Skill
-Runtime、多原生 Provider、MCP/GitHub/Jira、PostgreSQL、多人协作/RBAC、
-Vector DB 和 Kubernetes 不属于当前 Bootstrap。
+静态检查、unit/contract/integration、MockProvider replay 和本地浏览器 E2E 是不同证据
+类别，不能描述为真实模型 replay、外部 CI、生产部署或 Google/远程验收证据。
 
-## Bootstrap 完成标准
+## MVP 完成标准
 
-Project File Contract 和两个 CLI 命令在离线 quality gate 中通过。规划中的
-Golden Path 另有完成标准，包括使用 MockProvider 在无网络 CI 中通过。
+`pnpm check` 和 `pnpm test:e2e` 在不调用真实 LLM 的条件下通过，并覆盖 Domain、Store、
+Runtime、Tool、Provider、Agent、QA Task、API、UI、i18n、架构和文档边界。

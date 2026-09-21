@@ -12,7 +12,7 @@
 validator。本次实现只扩展现有 Quality Domain 文件和单元测试，并更新双语 Contract
 与项目索引。
 
-**Tech Stack:** Node.js 20+、pnpm、TypeScript、Vitest、ESLint、Prettier、Turborepo；
+**Tech Stack:** Node.js 22.22.2+、pnpm、TypeScript、Vitest、ESLint、Prettier、Turborepo；
 Domain 使用纯 TypeScript，测试离线执行。
 
 **Spec:** `docs/superpowers/specs/2026-09-20-quality-risk-test-obligation-domain-contract-design.md`
