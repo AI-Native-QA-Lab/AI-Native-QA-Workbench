@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "paths": {
       "@ai-native-qa-workbench/domain": ["../domain/src/index.ts"],
+      "@ai-native-qa-workbench/model-providers": ["../model-providers/src/index.ts"],
       "@ai-native-qa-workbench/project-store": ["../project-store/src/index.ts"]
     }
   },

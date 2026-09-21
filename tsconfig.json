@@ -10,7 +10,8 @@
       "@ai-native-qa-workbench/runtime-store": ["packages/runtime-store/src/index.ts"],
       "@ai-native-qa-workbench/tool-runtime": ["packages/tool-runtime/src/index.ts"],
       "@ai-native-qa-workbench/model-providers": ["packages/model-providers/src/index.ts"],
-      "@ai-native-qa-workbench/agent-runtime": ["packages/agent-runtime/src/index.ts"]
+      "@ai-native-qa-workbench/agent-runtime": ["packages/agent-runtime/src/index.ts"],
+      "@ai-native-qa-workbench/server": ["apps/server/src/server.ts"]
     }
   },
   "include": [

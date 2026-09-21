@@ -82,36 +82,6 @@ function entityExists(
     : false;
 }
 
-function validateOperationEntity(
-  snapshot: QualitySnapshot,
-  operation: QualityOperation,
-  index: number,
-): Diagnostic[] {
-  if (operation.kind === "delete") return [];
-  const entity = operation.entity;
-  if (entity === null || typeof entity !== "object") {
-    return [
-      diagnostic(
-        "PROPOSAL_ENTITY_INVALID",
-        `operations[${index}].entity`,
-        "Operation entity must be an object.",
-      ),
-    ];
-  }
-
-  const candidate = { ...snapshot };
-  const collectionKey = collectionFor[operation.entityType];
-  const collection = Array.isArray(candidate[collectionKey]) ? candidate[collectionKey] : [];
-  candidate[collectionKey] = [...collection, entity] as never;
-  const validation = validateQualitySnapshot(candidate);
-  return validation.diagnostics
-    .filter((item) => item.path.startsWith(`${String(collectionKey)}[`))
-    .map((item) => ({
-      ...item,
-      path: `operations[${index}].${item.path.slice(String(collectionKey).length + 1).replace(/^\d+\]/, "entity")}`,
-    }));
-}
-
 export function createProposal(
   _snapshot: QualitySnapshot,
   operations: QualityOperation[],
@@ -241,7 +211,6 @@ export function validateChangeProposal(
           );
         }
       }
-      if (snapshot) diagnostics.push(...validateOperationEntity(snapshot, operation, index));
     } else if (id && snapshot && !entityExists(snapshot, operation.entityType, id)) {
       diagnostics.push(
         diagnostic(
@@ -251,6 +220,33 @@ export function validateChangeProposal(
         ),
       );
     }
+  }
+
+  if (snapshot && diagnostics.length === 0) {
+    const preview = structuredClone(snapshot);
+    for (const operation of candidate.operations ?? []) {
+      if (operation.kind === "create") {
+        const collection = preview[collectionFor[operation.entityType]] as unknown[];
+        collection.push(structuredClone(operation.entity));
+        continue;
+      }
+      const collection = preview[collectionFor[operation.entityType]] as Array<{ id?: string }>;
+      const targetIndex = collection.findIndex((entity) => entity.id === operation.id);
+      if (targetIndex < 0) continue;
+      if (operation.kind === "update")
+        collection[targetIndex] = structuredClone(operation.entity) as { id?: string };
+      if (operation.kind === "delete") collection.splice(targetIndex, 1);
+    }
+    const previewValidation = validateQualitySnapshot(preview);
+    diagnostics.push(
+      ...previewValidation.diagnostics.map((item) =>
+        diagnostic(
+          "PROPOSAL_ENTITY_INVALID",
+          "operations",
+          `Resulting snapshot is invalid: ${item.path}`,
+        ),
+      ),
+    );
   }
 
   return { valid: diagnostics.length === 0, diagnostics };

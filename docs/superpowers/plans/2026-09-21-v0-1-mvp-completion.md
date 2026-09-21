@@ -155,11 +155,11 @@
 
 **步骤：**
 
-- [ ] 先写 CLI command parser/output/exit-code 和 server route RED tests。
-- [ ] 实现 doctor/open/analyze，并保持所有输出 machine code 与 locale-neutral data 可测试。
-- [ ] 先写 QA Task completion 必须经过 validate/review/apply/re-evaluate 的 RED tests。
-- [ ] 实现 `QualityTaskLoop` 和 Fastify server composition；默认 MockProvider，显式环境变量才启用 OpenAI-compatible Provider。
-- [ ] 运行 CLI/server/application integration、typecheck、build；提交 `feat: add qa task loop and local api`。
+- [x] 先写 CLI command parser/output/exit-code 和 server route RED tests。
+- [x] 实现 doctor/open/analyze，并保持所有输出 machine code 与 locale-neutral data 可测试。
+- [x] 先写 QA Task completion 必须经过 validate/review/apply/re-evaluate 的 RED tests。
+- [x] 实现 `QualityTaskLoop` 和 Fastify server composition；默认 MockProvider，显式环境变量才启用 OpenAI-compatible Provider。
+- [x] 运行 CLI/server/application integration、typecheck、build；提交 `feat: add qa task loop and local api`。
 
 ### Task 7：React/Vite Workbench UI 与国际化
 
