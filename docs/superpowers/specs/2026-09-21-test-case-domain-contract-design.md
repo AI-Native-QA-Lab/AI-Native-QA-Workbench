@@ -81,6 +81,11 @@ TestCase = id + obligationId + title + steps + expectedResult
 在未来真实执行模型稳定后，再单独评估是否需要前置条件 Contract，而不是在本切片
 中留下一个语义不清的可选字段。
 
+长期 Blueprint 链中的 `TestStrategy` 仍然保留。它未来负责测试范围、选择和计划等
+规划语义，可以引用一个或多个 `TestCase`；本切片的 `obligationId` 继续表示测试用例
+的质量来源，不被未来的策略层替换。这样既保持 `TestObligation → TestCase` 的直接
+可追踪性，也不提前创建 `TestStrategy` 实体。
+
 ## 4. Domain API
 
 在 `packages/domain/src/quality-domain.ts` 中新增并从
