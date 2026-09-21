@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-21
 **范围：** 一次性完成 v0.1 MVP 剩余能力，并修复严格审查确认的问题
-**实现提交：** 本地 closeout 提交（提交后在本记录中回填 SHA）
+**实现提交：** `c53dc5f fix: close v0.1 mvp audit findings`
 
 ## Gate 结果
 
