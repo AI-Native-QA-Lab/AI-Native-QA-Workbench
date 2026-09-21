@@ -109,10 +109,10 @@
 
 **步骤：**
 
-- [ ] 先写 migration、insert/read、close/reopen 和删除 runtime DB 不影响 quality YAML 的 RED integration tests。
-- [ ] 增加 `better-sqlite3` 依赖和最小 migration schema。
-- [ ] 实现 typed RuntimeStore methods 和参数化 SQL。
-- [ ] 运行 runtime integration、architecture、typecheck、build；提交 `feat: add sqlite runtime store`。
+- [x] 先写 migration、insert/read、close/reopen 和删除 runtime DB 不影响 quality YAML 的 RED integration tests。
+- [x] 增加 `better-sqlite3` 依赖和最小 migration schema。
+- [x] 实现 typed RuntimeStore methods 和参数化 SQL。
+- [x] 运行 runtime integration、architecture、typecheck、build；提交 `feat: add sqlite runtime store`。
 
 ### Task 5：Tool Contract、Provider Contract 和 Agent Execution Loop
 

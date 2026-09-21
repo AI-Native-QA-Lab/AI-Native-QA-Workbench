@@ -14,6 +14,9 @@ export default defineConfig({
       "@ai-native-qa-workbench/application": fileURLToPath(
         new URL("./packages/application/src/index.ts", import.meta.url),
       ),
+      "@ai-native-qa-workbench/runtime-store": fileURLToPath(
+        new URL("./packages/runtime-store/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {
