@@ -108,6 +108,7 @@ describe("WorkbenchPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Analyze requirement" }));
     await screen.findByText("Status: proposed");
+    fireEvent.change(screen.getByLabelText("Reviewer"), { target: { value: "nao" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve proposal" }));
 
     expect(await screen.findByText("Status: applied")).toBeTruthy();

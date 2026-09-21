@@ -209,10 +209,10 @@
 
 **步骤：**
 
-- [ ] 运行 `pnpm check`、`pnpm test:e2e`、架构检查、文档/i18n 检查和质量文件 round-trip 检查。
-- [ ] 做两轮标准与 spec review，修复 Critical/Important；Minor 记录但不扩大范围。
-- [ ] 更新 v0.1 MVP 完成状态、CHANGELOG、Release Plan 和最终验证记录。
-- [ ] 核验工作区、提交历史、CI 结果和未实现边界；提交 `docs: close v0.1 mvp implementation`。
+- [x] 运行 `pnpm check`、`pnpm test:e2e`、架构检查、文档/i18n 检查和质量文件 round-trip 检查。
+- [x] 做两轮标准与 spec review，修复 Critical/Important；Minor 记录但不扩大范围。
+- [x] 更新 v0.1 MVP 完成状态、CHANGELOG、Release Plan 和最终验证记录。
+- [x] 核验工作区、提交历史、CI 结果和未实现边界；提交 `docs: close v0.1 mvp implementation`。
 
 ## 公开交付定义
 

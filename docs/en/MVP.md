@@ -28,6 +28,8 @@ pnpm qaw analyze checkout ./example-project
 - `qaw init`, `validate`, `doctor`, `open`, and `analyze`
 - Fastify local API, React/Vite Workbench, bilingual UI, and Playwright Golden
   Path
+- The Workbench requires a non-empty reviewer identifier before a decision can
+  be submitted; UI locale and AI output locale remain independent.
 
 ## Golden Path
 

@@ -17,10 +17,11 @@ describe("ProposalReview", () => {
 
     expect(screen.getByText("Proposal proposal-1")).toBeTruthy();
     expect(screen.getByText("Status: proposed")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Reviewer"), { target: { value: "nao" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve proposal" }));
     fireEvent.click(screen.getByRole("button", { name: "Reject proposal" }));
 
-    expect(onDecision).toHaveBeenNthCalledWith(1, "approve");
-    expect(onDecision).toHaveBeenNthCalledWith(2, "reject");
+    expect(onDecision).toHaveBeenNthCalledWith(1, "approve", "nao");
+    expect(onDecision).toHaveBeenNthCalledWith(2, "reject", "nao");
   });
 });

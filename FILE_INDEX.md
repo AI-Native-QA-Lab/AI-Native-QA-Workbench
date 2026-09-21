@@ -138,4 +138,5 @@
 -   `docs/superpowers/specs/2026-09-21-test-case-domain-contract-design.md`
 -   `docs/superpowers/plans/2026-09-21-v0-1-mvp-completion.md`
 -   `docs/superpowers/specs/2026-09-21-v0-1-mvp-completion-design.md`
+-   `docs/superpowers/records/2026-09-21-v0-1-mvp-verification.md`
 -   `tests/e2e/start-server.mjs`

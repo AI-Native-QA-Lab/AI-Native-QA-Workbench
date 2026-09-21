@@ -24,6 +24,8 @@ pnpm qaw analyze checkout ./example-project
 - SQLite Runtime Store、ToolRegistry、Mock/OpenAI-compatible Provider 和 AgentRunner
 - `qaw init`、`validate`、`doctor`、`open`、`analyze`
 - Fastify 本地 API、React/Vite Workbench、双语 UI 和 Playwright Golden Path
+- Workbench 在提交决策前要求用户填写非空 reviewer 标识；UI locale 与 AI outputLocale
+  保持独立。
 
 ## Golden Path
 

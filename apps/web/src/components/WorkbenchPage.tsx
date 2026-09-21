@@ -51,9 +51,9 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
     setProposal(result.proposal);
   }
 
-  async function decide(decision: "approve" | "reject"): Promise<void> {
+  async function decide(decision: "approve" | "reject", reviewer: string): Promise<void> {
     if (!proposal) return;
-    const result = await props.api.decide(proposal.id, { reviewer: "human", decision });
+    const result = await props.api.decide(proposal.id, { reviewer, decision });
     setProposal(result.proposal);
     if (result.applied) {
       const refreshed = await props.api.getQuality();
@@ -65,7 +65,7 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
     <main className="workbench-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">{projectName || "AI-Native QA"}</p>
+          <p className="eyebrow">{projectName || t("brand")}</p>
           <h1>{t("title")}</h1>
           <p>{t("subtitle")}</p>
         </div>
@@ -117,8 +117,8 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
                   value={outputLocale}
                   onChange={(event) => setOutputLocale(event.target.value as UiLocale)}
                 >
-                  <option value="en">English</option>
-                  <option value="zh-CN">中文</option>
+                  <option value="en">{t("english")}</option>
+                  <option value="zh-CN">{t("chinese")}</option>
                 </select>
               </label>
               <button type="submit">{t("analyze")}</button>

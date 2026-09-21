@@ -13,6 +13,7 @@ test("Golden Path: load, analyze, review, apply, and refresh quality counts", as
 
   await expect(page.getByText(/Proposal proposal-/)).toBeVisible();
   await expect(page.getByText("Status: proposed")).toBeVisible();
+  await page.getByLabel("Reviewer").fill("e2e-human");
   await page.getByRole("button", { name: "Approve proposal" }).click();
 
   await expect(page.getByText("Status: applied")).toBeVisible();

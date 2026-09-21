@@ -2,6 +2,7 @@ export type UiLocale = "en" | "zh-CN";
 
 const messages = {
   en: {
+    brand: "AI-Native QA",
     title: "QA Workbench",
     subtitle: "Local-first quality intelligence",
     project: "Project",
@@ -19,6 +20,8 @@ const messages = {
     approve: "Approve proposal",
     reject: "Reject proposal",
     proposal: "Proposal",
+    operations: "operations",
+    reviewer: "Reviewer",
     status: "Status",
     chinese: "中文",
     english: "English",
@@ -26,6 +29,7 @@ const messages = {
     failed: "Unable to load the workbench.",
   },
   "zh-CN": {
+    brand: "AI-Native QA",
     title: "QA 工作台",
     subtitle: "Local-first 质量智能",
     project: "项目",
@@ -43,6 +47,8 @@ const messages = {
     approve: "批准 Proposal",
     reject: "拒绝 Proposal",
     proposal: "Proposal",
+    operations: "操作",
+    reviewer: "审查者",
     status: "状态",
     chinese: "中文",
     english: "English",

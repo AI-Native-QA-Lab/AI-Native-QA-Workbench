@@ -1,6 +1,6 @@
 # v0.1 MVP 剩余能力完成设计
 
-**状态：** 已获用户明确授权，目标是在一个连续的 v0.1 MVP 交付中完成当前 Bootstrap 之外的剩余能力；实现前先冻结本设计与实施计划。
+**状态：** 已完成（2026-09-21）。本设计对应的 v0.1 MVP 剩余能力已在本地 `main` 工作区实现、验证并收口；`v0.1.0` Bootstrap tag 保持不变。
 
 ## 1. 目标
 
@@ -226,3 +226,9 @@ Requirement Analysis 在 MockProvider 下生成可验证的 ChangeProposal，默
 - 英文 canonical Contract 与中文镜像同步；
 - `README`、MVP、Roadmap、Release Plan 和实施记录反映真实实现状态；
 - 未把静态测试、MockProvider 或本地 E2E 描述成真实 LLM、生产部署或外部系统证据。
+
+## 7. 实现收口记录
+
+-   `cc4991b` 完成 v0.1 MVP 的应用、Runtime、Provider、Agent、API、UI、i18n、CI、Contract 和 Golden Path 交付。
+-   最终验证记录见 [`../records/2026-09-21-v0-1-mvp-verification.md`](../records/2026-09-21-v0-1-mvp-verification.md)。
+-   下一实施目标是 v0.2 Evidence Foundation；TestRun、Evidence、QualityAssessment、QualityGate、Domain Event、外部集成、Shared Workbench 和 PostgreSQL 不回写到本次 v0.1 范围。
