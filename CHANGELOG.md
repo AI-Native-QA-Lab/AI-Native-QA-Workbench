@@ -19,3 +19,5 @@ compatibility guarantees before the v1.0 stable release.
   validation diagnostics and bilingual contract documentation.
 - Added the QualityRisk and TestObligation domain contracts with deterministic
   validation diagnostics and bilingual contract documentation.
+- Added the TestCase domain contract with deterministic validation diagnostics and
+  bilingual contract documentation.
