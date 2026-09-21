@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-21-test-case-domain-contract-design.md`
 
+**状态：** 已完成 v0.1 TestCase Domain Contract 实现、双语文档和最终验证。
+
 ## Global Constraints
 
 - `.ai-qa/` 仍是项目质量数据 Source of Truth；本切片不写入任何 `.ai-qa/` 文件。
@@ -44,7 +46,7 @@
 - Consumes: 尚不存在的 `TestCase` 类型和 `validateTestCase` public API；现有测试使用 Vitest 和 `@ai-native-qa-workbench/domain` 入口。
 - Produces: 明确 `TestCase` 的合法行为、固定 diagnostics 顺序、malformed runtime 行为、输入不变性和 ID 边界；为 Task 2 提供精确 RED 行为。
 
-- [ ] **Step 1: 扩展 Domain public import**
+- [x] **Step 1: 扩展 Domain public import**
 
 在 `tests/unit/domain/quality-domain.test.ts` 的现有 import 中加入：
 
@@ -55,7 +57,7 @@
 
 保持既有 import 来源为 `@ai-native-qa-workbench/domain`，不从 `packages/domain/src` 私有路径导入。
 
-- [ ] **Step 2: 写合法、孤立引用和组合诊断测试**
+- [x] **Step 2: 写合法、孤立引用和组合诊断测试**
 
 在 `validateTestObligation` 测试之后加入以下测试块：
 
@@ -173,7 +175,7 @@ describe("validateTestCase", () => {
 });
 ```
 
-- [ ] **Step 3: 写 ID 边界矩阵测试**
+- [x] **Step 3: 写 ID 边界矩阵测试**
 
 在同一测试文件中加入以下常量和测试：
 
@@ -226,7 +228,7 @@ describe("TestCase identifier validation", () => {
 });
 ```
 
-- [ ] **Step 4: 运行 TestCase RED 测试**
+- [x] **Step 4: 运行 TestCase RED 测试**
 
 Run:
 
@@ -238,7 +240,7 @@ Expected: RED。失败原因应是 `TestCase` 类型、`validateTestCase` 或五
 code 尚未从 Domain public entry 提供，而不是测试语法错误、选择器错误或既有
 Requirement/AcceptanceCriterion/QualityRisk/TestObligation 回归。
 
-- [ ] **Step 5: 提交 RED 测试**
+- [x] **Step 5: 提交 RED 测试**
 
 只暂存测试文件并提交：
 
@@ -260,7 +262,7 @@ git commit -m "test: define test case domain behavior"
 - Consumes: Task 1 的 failing tests、`isValidKebabCaseId`、现有 `diagnostic` helper、`Diagnostic` 和 `ValidationResult`。
 - Produces: `TestCase`、`validateTestCase`，以及五个 `TestCase` diagnostic code；现有 wildcard public export 继续对外暴露它们。
 
-- [ ] **Step 1: 增加五个 DiagnosticCode**
+- [x] **Step 1: 增加五个 DiagnosticCode**
 
 在 `packages/domain/src/project.ts` 现有 `TEST_OBLIGATION_*` code 后追加：
 
@@ -274,7 +276,7 @@ git commit -m "test: define test case domain behavior"
 
 不重排、不改名、不删除已有 DiagnosticCode。
 
-- [ ] **Step 2: 增加 TestCase 类型**
+- [x] **Step 2: 增加 TestCase 类型**
 
 在 `packages/domain/src/quality-domain.ts` 的 `TestObligation` interface 后追加：
 
@@ -288,7 +290,7 @@ export interface TestCase {
 }
 ```
 
-- [ ] **Step 3: 增加最小 validator**
+- [x] **Step 3: 增加最小 validator**
 
 在 `validateTestObligation` 后追加以下实现，复用现有 helper，不创建新的抽象层：
 
@@ -343,7 +345,7 @@ export function validateTestCase(testCase: TestCase): ValidationResult {
 }
 ```
 
-- [ ] **Step 4: 确认 public entry 不需要额外导出语句**
+- [x] **Step 4: 确认 public entry 不需要额外导出语句**
 
 确认 `packages/domain/src/index.ts` 保持：
 
@@ -354,7 +356,7 @@ export * from "./quality-domain.js";
 
 不要增加从内部文件的重复 named export。
 
-- [ ] **Step 5: 运行 targeted GREEN 和类型检查**
+- [x] **Step 5: 运行 targeted GREEN 和类型检查**
 
 Run:
 
@@ -365,7 +367,7 @@ pnpm typecheck
 
 Expected: TestCase 测试和既有 Quality Domain 测试全部 PASS；TypeScript 编译通过；validator 不引入基础设施依赖。
 
-- [ ] **Step 6: 提交最小实现**
+- [x] **Step 6: 提交最小实现**
 
 只暂存本任务列出的三个源文件并提交：
 
@@ -390,7 +392,7 @@ git commit -m "feat: add test case domain contract"
 - Consumes: Task 2 已实现的 `TestCase` public type、`validateTestCase` 和五个 diagnostic code。
 - Produces: 与实现一致的英文 canonical Contract、中文镜像、Unreleased 变更记录和实施计划索引。
 
-- [ ] **Step 1: 扩展英文 Quality Domain Contract**
+- [x] **Step 1: 扩展英文 Quality Domain Contract**
 
 在 `docs/en/contracts/QUALITY_DOMAIN_CONTRACT.md` 中完成以下确定性修改：
 
@@ -428,7 +430,7 @@ git commit -m "feat: add test case domain contract"
 7. Immutability 改为覆盖五个 validator；Relationship Boundary 增加 TestCase 只校验 `obligationId` 语法的说明。
 8. Out of Scope 明确不定义 TestCase 的 `status`、`priority`、`kind`、`automationRef`、执行目标、运行结果、步骤数组、参数化和断言 DSL。
 
-- [ ] **Step 2: 同步中文 Quality Domain Contract**
+- [x] **Step 2: 同步中文 Quality Domain Contract**
 
 在 `docs/zh-CN/contracts/QUALITY_DOMAIN_CONTRACT.md` 保持与英文章节、字段和表格顺序一致：
 
@@ -439,7 +441,7 @@ git commit -m "feat: add test case domain contract"
 - Diagnostics 增加五个 code 的中文含义，QualityRisk/TestObligation/TestCase 三类合计十一个 code；
 - 不可变性、关系边界和当前范围之外同步记录 TestCase 边界。
 
-- [ ] **Step 3: 更新 Unreleased 和 FILE_INDEX**
+- [x] **Step 3: 更新 Unreleased 和 FILE_INDEX**
 
 在 `CHANGELOG.md` 的 `## [Unreleased]` 下追加：
 
@@ -455,7 +457,7 @@ git commit -m "feat: add test case domain contract"
 
 保留 `FILE_INDEX.md` 现有列表缩进格式，不运行会重写整文件的 Markdown formatter。
 
-- [ ] **Step 4: 运行文档验证并提交**
+- [x] **Step 4: 运行文档验证并提交**
 
 Run:
 
@@ -486,7 +488,7 @@ git commit -m "docs: document test case domain contract"
 - Consumes: Tasks 1–3 的实现、测试、双语 Contract 和验证输出。
 - Produces: 已勾选的实施记录、完成状态、最终验证证据和干净工作区。
 
-- [ ] **Step 1: 运行完整质量门禁**
+- [x] **Step 1: 运行完整质量门禁**
 
 Run:
 
@@ -498,7 +500,7 @@ git status --short --branch
 
 Expected：Prettier、ESLint、TypeScript、三包 build、全量 Vitest、architecture test 和 docs check 全部通过；`git diff --check` 无输出；工作区只包含本切片待记录的变更。
 
-- [ ] **Step 2: 更新 spec 完成状态**
+- [x] **Step 2: 更新 spec 完成状态**
 
 将 spec 顶部状态替换为：
 
@@ -508,7 +510,7 @@ Expected：Prettier、ESLint、TypeScript、三包 build、全量 Vitest、archi
 
 保留 spec 中的两轮自 review 记录，并在验收标准中确认五个 diagnostic code、双语文档和全量质量门禁均已满足。
 
-- [ ] **Step 3: 更新 plan 执行记录**
+- [x] **Step 3: 更新 plan 执行记录**
 
 将本计划所有已完成步骤的 `- [ ]` 改为 `- [x]`，在顶部追加：
 
@@ -527,7 +529,7 @@ Expected：Prettier、ESLint、TypeScript、三包 build、全量 Vitest、archi
 - 没有实现 TestStrategy、TraceLink、Store、UI、执行状态或 Evidence。
 ```
 
-- [ ] **Step 4: 提交实施记录**
+- [x] **Step 4: 提交实施记录**
 
 只暂存两个过程文档并提交：
 
@@ -536,7 +538,7 @@ git add docs/superpowers/specs/2026-09-21-test-case-domain-contract-design.md do
 git commit -m "docs: finalize test case implementation record"
 ```
 
-- [ ] **Step 5: 提交后核验**
+- [x] **Step 5: 提交后核验**
 
 Run:
 
@@ -571,3 +573,10 @@ Expected：工作区干净；最终提交只包含 TestCase Domain Contract 实�
 ### Review Focus coverage
 
 Review Focus 的五类输入均由 Task 1 的合法、组合失败、malformed runtime、ID 矩阵、孤立引用和 structured clone 测试覆盖；Task 2 只实现这些已固定行为，不扩展输入语义。
+
+## 最终验证记录
+
+- TestCase public type、validator 和五个 diagnostics 已交付。
+- TestCase validator 保持纯函数、输入不变，并只检查 `obligationId` 的 ID 语法。
+- targeted Domain test、typecheck、build、完整 test、architecture check 和 docs check 已通过。
+- 没有实现 TestStrategy、TraceLink、Store、UI、执行状态或 Evidence。

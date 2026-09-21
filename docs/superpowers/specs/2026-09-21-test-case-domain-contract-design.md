@@ -1,7 +1,6 @@
 # TestCase Domain Contract 设计
 
-**状态：** 方案 A 已获确认；本文已完成两轮自 review，待用户 review；尚未实现
-代码或实施计划。
+**状态：** 方案 A 已获确认；已完成两轮 spec review、TDD 实现和最终验证；TestCase Domain Contract 已完成 v0.1 交付。
 
 ## 1. 目标与范围
 
@@ -248,6 +247,8 @@ Contract → Behavior → RED → Minimal Implementation → GREEN → REFACTOR
 ## 10. 验收标准
 
 只有以下条件全部满足，才认为本切片完成：
+
+本切片已满足以下全部验收标准。
 
 - `TestCase` 类型和 validator 从 Domain public entry 导出；
 - 五个 diagnostic code、path、severity 和固定顺序与本 spec 一致；
