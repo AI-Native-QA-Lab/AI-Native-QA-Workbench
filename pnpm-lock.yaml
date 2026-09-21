@@ -200,6 +200,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/project-store
 
+  packages/agent-runtime:
+    dependencies:
+      '@ai-native-qa-workbench/model-providers':
+        specifier: workspace:*
+        version: link:../model-providers
+
   packages/application:
     dependencies:
       '@ai-native-qa-workbench/domain':
@@ -210,6 +216,12 @@ importers:
         version: link:../project-store
 
   packages/domain: {}
+
+  packages/model-providers:
+    dependencies:
+      '@ai-native-qa-workbench/domain':
+        specifier: workspace:*
+        version: link:../domain
 
   packages/project-store:
     dependencies:
@@ -232,6 +244,8 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
+
+  packages/tool-runtime: {}
 
 packages:
 

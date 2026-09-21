@@ -131,13 +131,13 @@
 
 **步骤：**
 
-- [ ] 先写 permission、unknown tool、approval callback 和 audit callback RED tests。
-- [ ] 实现 ToolRegistry；所有 write/restricted action 必须审批并记录 Runtime Store。
-- [ ] 先写 MockProvider sequence、OpenAI-compatible HTTP mapping 和 error RED contract tests。
-- [ ] 实现 provider contracts；OpenAI-compatible path 只使用注入的 `fetch` 和环境配置。
-- [ ] 先写 Agent state transition、maxSteps、timeout、cancel、pause/resume/approval RED tests。
-- [ ] 实现最小 AgentRunner，保持 Agent Loop 与 QA Task Loop 分离。
-- [ ] 运行 targeted tests、完整 unit tests 和 architecture test；提交 `feat: add offline provider tool and agent runtime`。
+- [x] 先写 permission、unknown tool、approval callback 和 audit callback RED tests。
+- [x] 实现 ToolRegistry；所有 write/restricted action 必须审批并记录 Runtime Store。
+- [x] 先写 MockProvider sequence、OpenAI-compatible HTTP mapping 和 error RED contract tests。
+- [x] 实现 provider contracts；OpenAI-compatible path 只使用注入的 `fetch` 和环境配置。
+- [x] 先写 Agent state transition、maxSteps、timeout、cancel、pause/resume/approval RED tests。
+- [x] 实现最小 AgentRunner，保持 Agent Loop 与 QA Task Loop 分离。
+- [x] 运行 targeted tests、完整 unit tests 和 architecture test；提交 `feat: add offline provider tool and agent runtime`。
 
 ### Task 6：QA Task Loop、CLI 完整命令和本地 API
 

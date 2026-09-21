@@ -17,6 +17,15 @@ export default defineConfig({
       "@ai-native-qa-workbench/runtime-store": fileURLToPath(
         new URL("./packages/runtime-store/src/index.ts", import.meta.url),
       ),
+      "@ai-native-qa-workbench/tool-runtime": fileURLToPath(
+        new URL("./packages/tool-runtime/src/index.ts", import.meta.url),
+      ),
+      "@ai-native-qa-workbench/model-providers": fileURLToPath(
+        new URL("./packages/model-providers/src/index.ts", import.meta.url),
+      ),
+      "@ai-native-qa-workbench/agent-runtime": fileURLToPath(
+        new URL("./packages/agent-runtime/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {
