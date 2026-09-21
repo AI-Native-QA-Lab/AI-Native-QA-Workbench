@@ -17,6 +17,49 @@ export interface ServerOptions {
   provider?: RequirementAnalysisProvider;
 }
 
+type AnalysisRequest = {
+  requirementId: string;
+  outputLocale?: "en" | "zh-CN";
+};
+
+type DecisionRequest = {
+  reviewer: string;
+  decision: HumanReview["decision"];
+  approvedOperationIndexes?: number[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+function isAnalysisRequest(value: unknown): value is AnalysisRequest {
+  if (!isRecord(value) || typeof value.requirementId !== "string") return false;
+  if (value.requirementId.trim().length === 0) return false;
+  return (
+    value.outputLocale === undefined ||
+    value.outputLocale === "en" ||
+    value.outputLocale === "zh-CN"
+  );
+}
+
+function isDecisionRequest(value: unknown): value is DecisionRequest {
+  if (
+    !isRecord(value) ||
+    typeof value.reviewer !== "string" ||
+    value.reviewer.trim().length === 0
+  ) {
+    return false;
+  }
+  if (value.decision !== "approve" && value.decision !== "reject" && value.decision !== "partial") {
+    return false;
+  }
+  return (
+    value.approvedOperationIndexes === undefined ||
+    (Array.isArray(value.approvedOperationIndexes) &&
+      value.approvedOperationIndexes.every((index) => Number.isInteger(index) && index >= 0))
+  );
+}
+
 export async function buildServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   const store = options.store ?? new FileProjectStore();
@@ -43,20 +86,45 @@ export async function buildServer(options: ServerOptions): Promise<FastifyInstan
     });
   });
 
-  app.post<{ Body: { requirementId?: string; outputLocale?: "en" | "zh-CN" } }>(
-    "/api/analysis",
+  app.post<{ Body: unknown }>("/api/analysis", async (request, reply) => {
+    if (!isAnalysisRequest(request.body)) {
+      return reply.code(400).send({ error: "Invalid analysis request." });
+    }
+    try {
+      const result = await loop.propose({
+        rootDirectory: options.rootDirectory,
+        requirementId: request.body.requirementId,
+        outputLocale: request.body.outputLocale ?? "en",
+      });
+      proposals.set(result.proposal.id, result.proposal);
+      return reply.code(result.phase === "blocked" ? 422 : 200).send(result);
+    } catch (error) {
+      return reply
+        .code(400)
+        .send({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  app.post<{ Params: { id: string }; Body: unknown }>(
+    "/api/proposals/:id/decision",
     async (request, reply) => {
-      if (!request.body?.requirementId) {
-        return reply.code(400).send({ error: "requirementId is required" });
+      const proposal = proposals.get(request.params.id);
+      if (!proposal) return reply.code(404).send({ error: "Proposal not found" });
+      if (!isDecisionRequest(request.body)) {
+        return reply.code(400).send({ error: "Invalid decision request." });
       }
       try {
-        const result = await loop.propose({
+        const result = await loop.decide({
           rootDirectory: options.rootDirectory,
-          requirementId: request.body.requirementId,
-          outputLocale: request.body.outputLocale ?? "en",
+          proposal,
+          reviewer: request.body.reviewer,
+          decision: request.body.decision,
+          ...(request.body.approvedOperationIndexes
+            ? { approvedOperationIndexes: request.body.approvedOperationIndexes }
+            : {}),
         });
         proposals.set(result.proposal.id, result.proposal);
-        return reply.code(result.phase === "blocked" ? 422 : 200).send(result);
+        return reply.code(result.phase === "blocked" ? 409 : 200).send(result);
       } catch (error) {
         return reply
           .code(400)
@@ -64,38 +132,6 @@ export async function buildServer(options: ServerOptions): Promise<FastifyInstan
       }
     },
   );
-
-  app.post<{
-    Params: { id: string };
-    Body: {
-      reviewer?: string;
-      decision?: HumanReview["decision"];
-      approvedOperationIndexes?: number[];
-    };
-  }>("/api/proposals/:id/decision", async (request, reply) => {
-    const proposal = proposals.get(request.params.id);
-    if (!proposal) return reply.code(404).send({ error: "Proposal not found" });
-    if (!request.body?.reviewer || !request.body.decision) {
-      return reply.code(400).send({ error: "reviewer and decision are required" });
-    }
-    try {
-      const result = await loop.decide({
-        rootDirectory: options.rootDirectory,
-        proposal,
-        reviewer: request.body.reviewer,
-        decision: request.body.decision,
-        ...(request.body.approvedOperationIndexes
-          ? { approvedOperationIndexes: request.body.approvedOperationIndexes }
-          : {}),
-      });
-      proposals.set(result.proposal.id, result.proposal);
-      return reply.code(result.phase === "blocked" ? 409 : 200).send(result);
-    } catch (error) {
-      return reply
-        .code(400)
-        .send({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
 
   return app;
 }

@@ -60,6 +60,15 @@ function qualityFileMissingDiagnostic(): StoreDiagnostic {
   };
 }
 
+function qualityFileExistsDiagnostic(): StoreDiagnostic {
+  return {
+    code: "QUALITY_FILE_EXISTS",
+    message: "Quality file already exists; refusing to overwrite it.",
+    path: QUALITY_FILE_RELATIVE_PATH,
+    severity: "error",
+  };
+}
+
 function revisionFor(contents: string): string {
   return createHash("sha256").update(contents, "utf8").digest("hex");
 }
@@ -111,6 +120,13 @@ export class FileProjectStore implements ProjectStore {
         diagnostics: [projectFileExistsDiagnostic()],
       };
     }
+    if (await exists(qualityPathFor(rootDirectory))) {
+      return {
+        created: false,
+        projectPath,
+        diagnostics: [qualityFileExistsDiagnostic()],
+      };
+    }
 
     const directoryName = basename(rootDirectory);
     const project: Project = {
@@ -130,19 +146,26 @@ export class FileProjectStore implements ProjectStore {
       };
     }
 
-    await writeAtomically(projectPath, serializeProject(project));
-    await writeAtomically(
-      qualityPathFor(rootDirectory),
-      serializeQualitySnapshot({
-        schemaVersion: QUALITY_SCHEMA_VERSION,
-        requirements: [],
-        acceptanceCriteria: [],
-        qualityRisks: [],
-        testObligations: [],
-        testCases: [],
-        traceLinks: [],
-      }),
-    );
+    let projectWritten = false;
+    try {
+      await writeAtomically(projectPath, serializeProject(project));
+      projectWritten = true;
+      await writeAtomically(
+        qualityPathFor(rootDirectory),
+        serializeQualitySnapshot({
+          schemaVersion: QUALITY_SCHEMA_VERSION,
+          requirements: [],
+          acceptanceCriteria: [],
+          qualityRisks: [],
+          testObligations: [],
+          testCases: [],
+          traceLinks: [],
+        }),
+      );
+    } catch (error) {
+      if (projectWritten) await rm(projectPath, { force: true }).catch(() => undefined);
+      throw error;
+    }
 
     return {
       created: true,

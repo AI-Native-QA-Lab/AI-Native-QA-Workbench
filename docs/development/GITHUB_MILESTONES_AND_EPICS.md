@@ -1,5 +1,11 @@
 # GitHub Milestones 与 Epic 规划
 
+> **当前状态（2026-09-21）：** 本文件是本地治理规划注册表，不等同于 GitHub
+> 远端已创建的 Milestone 或 Issue。当前仓库的 GitHub Issues/Milestones 尚未
+> provision；远端 Issues 功能未启用，因此本次 v0.1 本地 MVP closeout 不虚构
+> 远端卡片状态。后续创建 Milestone、Issue、Tag 或 Release 需要单独的外部发布
+> 决策和验证。
+
 ## Milestones
 
 -   M0 --- Repository Bootstrap

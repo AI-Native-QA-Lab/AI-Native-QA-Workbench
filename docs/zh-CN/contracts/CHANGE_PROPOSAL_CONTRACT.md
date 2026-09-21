@@ -37,3 +37,6 @@ Reject 不写文件；校验失败不会产生部分文件。Proposal status 必
 一致：`approved` 必须对应 `approve`，`partially-approved` 必须对应 `partial`，并且至少
 包含一个不重复且在范围内的 operation index；`rejected` 必须对应 `reject`。当前 Proposal
 workflow state 保存在 application memory；持久化 Proposal 历史属于后续 runtime 能力。
+
+校验还会按 operation 顺序评估。如果前一个 operation 删除了后续 operation 的 target，
+校验会返回 `PROPOSAL_TARGET_NOT_FOUND`，并且不会写入文件。

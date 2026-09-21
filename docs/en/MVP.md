@@ -3,8 +3,9 @@
 ## Current status
 
 The v0.1.0 tag is the Bootstrap release. The remaining v0.1 MVP implementation
-is now complete in the unreleased closeout working tree; the Bootstrap tag is
-not rewritten.
+is complete in the unreleased local closeout; its closeout commits have not yet
+been pushed or published as a new tag/Release, and the Bootstrap tag is not
+rewritten.
 
 ## Quick Start
 
@@ -14,6 +15,13 @@ pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
 pnpm qaw doctor ./example-project
 pnpm qaw open ./example-project
+```
+
+`qaw init` creates an empty `quality.yaml`; it does not create a Requirement.
+Add a valid Requirement with id `checkout` to `.ai-qa/quality.yaml` before the
+example analysis:
+
+```bash
 pnpm qaw analyze checkout ./example-project
 ```
 

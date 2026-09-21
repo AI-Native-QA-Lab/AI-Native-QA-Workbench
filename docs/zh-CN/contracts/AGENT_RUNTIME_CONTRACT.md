@@ -13,5 +13,8 @@ Runner 支持 `maxSteps`、timeout、cancel、pause/resume 和 approval resume�
 `AgentEvent` 报告 state、step 和 approval transition。Provider 通过 `ModelProvider`
 注入；CI 使用 `MockProvider`。
 
+v0.1 Runner 是有界的 request/response 执行，不提供 token streaming 或由 Provider
+负责的 Tool orchestration；这些属于后续 Runtime 能力。
+
 Runtime audit 由 SQLite Runtime Store 负责。QA business completion 由
 `QualityTaskLoop` 和确定性的 Completion Contract 负责。

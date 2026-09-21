@@ -297,7 +297,7 @@ export function validateChangeProposal(
 
   if (snapshot && diagnostics.length === 0) {
     const preview = structuredClone(snapshot);
-    for (const operation of candidate.operations ?? []) {
+    for (const [index, operation] of (candidate.operations ?? []).entries()) {
       if (operation.kind === "create") {
         const collection = preview[collectionFor[operation.entityType]] as unknown[];
         collection.push(structuredClone(operation.entity));
@@ -305,7 +305,16 @@ export function validateChangeProposal(
       }
       const collection = preview[collectionFor[operation.entityType]] as Array<{ id?: string }>;
       const targetIndex = collection.findIndex((entity) => entity.id === operation.id);
-      if (targetIndex < 0) continue;
+      if (targetIndex < 0) {
+        diagnostics.push(
+          diagnostic(
+            "PROPOSAL_TARGET_NOT_FOUND",
+            `operations[${index}].id`,
+            "Operation target does not exist in the resulting snapshot.",
+          ),
+        );
+        continue;
+      }
       if (operation.kind === "update")
         collection[targetIndex] = structuredClone(operation.entity) as { id?: string };
       if (operation.kind === "delete") collection.splice(targetIndex, 1);

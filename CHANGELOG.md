@@ -18,6 +18,12 @@ compatibility guarantees before the v1.0 stable release.
 - Kept TestRun/Evidence/QualityAssessment/QualityGate/Domain Events, external
   integrations, remote runtime, and PostgreSQL outside the v0.1 gate; these
   remain roadmap work rather than hidden implementation evidence.
+- Closed the strict review findings for TraceLink endpoint references and IDs,
+  safe project initialization, ordered proposal validation, HTTP boundary
+  validation, and mandatory Tool Runtime Store audit context.
+- Reconciled the v0.1 implementation plan with the delivered scope; streaming,
+  provider-tool orchestration, graph indexes, model invocation telemetry, and
+  durable QualityTaskRun remain future capabilities.
 
 ## [0.1.0] - 2026-09-21
 

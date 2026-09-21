@@ -40,3 +40,6 @@ The proposal status and review decision must agree: `approved` requires
 in-range operation index, and `rejected` requires `reject`.
 The current implementation keeps proposal workflow state in application memory;
 durable proposal history is a later runtime capability.
+
+Validation also evaluates operations in order. If an earlier operation removes a later
+operation's target, validation returns `PROPOSAL_TARGET_NOT_FOUND` and no file is written.

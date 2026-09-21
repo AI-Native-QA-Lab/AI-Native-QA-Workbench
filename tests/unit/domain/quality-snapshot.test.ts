@@ -181,9 +181,63 @@ describe("validateQualitySnapshot", () => {
     expect(result.diagnostics.map(({ code, path }) => ({ code, path }))).toEqual([
       { code: "QUALITY_TRACE_LINK_INVALID", path: "traceLinks[0]" },
       { code: "QUALITY_TRACE_LINK_SELF_REFERENCE", path: "traceLinks[1]" },
+      { code: "QUALITY_DUPLICATE_ID", path: "traceLinks[2].id" },
       { code: "QUALITY_TRACE_LINK_SELF_REFERENCE", path: "traceLinks[2]" },
       { code: "QUALITY_TRACE_LINK_DUPLICATE", path: "traceLinks[2]" },
     ]);
+  });
+
+  it("rejects trace links whose endpoints do not exist", () => {
+    const result = validateQualitySnapshot({
+      ...emptySnapshot(),
+      traceLinks: [
+        {
+          id: "missing-link",
+          fromType: "acceptance-criterion",
+          fromId: "missing-criterion",
+          toType: "requirement",
+          toId: "missing-requirement",
+          relation: "satisfies",
+        },
+      ],
+    });
+
+    expect(result.diagnostics.map(({ code, path }) => ({ code, path }))).toEqual([
+      { code: "QUALITY_REFERENCE_NOT_FOUND", path: "traceLinks[0].fromId" },
+      { code: "QUALITY_REFERENCE_NOT_FOUND", path: "traceLinks[0].toId" },
+    ]);
+  });
+
+  it("rejects duplicate trace-link IDs even when the edges differ", () => {
+    const result = validateQualitySnapshot({
+      ...emptySnapshot(),
+      requirements: [
+        { id: "checkout", title: "Checkout", description: "" },
+        { id: "login", title: "Login", description: "" },
+      ],
+      traceLinks: [
+        {
+          id: "same-link",
+          fromType: "requirement",
+          fromId: "checkout",
+          toType: "requirement",
+          toId: "login",
+          relation: "satisfies",
+        },
+        {
+          id: "same-link",
+          fromType: "requirement",
+          fromId: "login",
+          toType: "requirement",
+          toId: "checkout",
+          relation: "satisfies",
+        },
+      ],
+    });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "QUALITY_DUPLICATE_ID", path: "traceLinks[1].id" }),
+    );
   });
 
   it("returns collection diagnostics for malformed runtime input without throwing", () => {

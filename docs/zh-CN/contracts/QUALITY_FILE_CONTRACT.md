@@ -47,6 +47,9 @@ quality:
 文件写入由 Project Store 负责。Store 实现必须使用同目录临时文件加原子 rename，并在
 写入失败时清理临时文件。
 
+项目初始化不得覆盖已有的 project 或 quality 文件。如果创建 project 文件后成对初始化
+失败，必须删除本次新创建的 project 文件，避免留下不完整的文件对。
+
 ## 兼容性
 
 字段名、集合顺序、诊断 code、诊断 path 或 schema version 的变化，都必须经过 Contract

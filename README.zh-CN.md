@@ -22,6 +22,12 @@ pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
 pnpm qaw doctor ./example-project
 pnpm qaw open ./example-project
+```
+
+`qaw init` 创建的是空的 `quality.yaml`，不会自动创建 Requirement。执行下面的分析
+示例前，请先在 `.ai-qa/quality.yaml` 中加入 ID 为 `checkout` 的有效 Requirement：
+
+```bash
 pnpm qaw analyze checkout ./example-project
 ```
 
@@ -32,8 +38,9 @@ QAW_ROOT_DIRECTORY="$PWD/example-project" pnpm --filter @ai-native-qa-workbench/
 pnpm --filter @ai-native-qa-workbench/web dev
 ```
 
-`v0.1.0` tag 是之前的 Bootstrap Release；已完成的 v0.1 MVP 实现当前属于
-尚未发布的工作区 closeout，不会回写描述为该 tag 已包含的能力。
+`v0.1.0` tag 是之前的 Bootstrap Release；已完成的 v0.1 MVP 实现属于尚未发布的
+本地 closeout，closeout 提交尚未推送或作为新的 tag/Release 发布，也不会回写描述为
+该 Bootstrap tag 已包含这些能力。
 
 ## 当前 v0.1 MVP 范围
 

@@ -23,6 +23,13 @@ pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
 pnpm qaw doctor ./example-project
 pnpm qaw open ./example-project
+```
+
+`qaw init` creates an empty `quality.yaml`; it does not create a Requirement.
+Add a valid Requirement with id `checkout` to `.ai-qa/quality.yaml` before
+running the example analysis:
+
+```bash
 pnpm qaw analyze checkout ./example-project
 ```
 
@@ -34,8 +41,9 @@ pnpm --filter @ai-native-qa-workbench/web dev
 ```
 
 The `v0.1.0` tag is the earlier Bootstrap release. The completed v0.1 MVP
-implementation is currently the unreleased working-tree closeout and is not
-retroactively described as part of that tag.
+implementation is the unreleased local closeout; its closeout commits are not
+yet pushed or published as a new tag/Release, and the Bootstrap tag is not
+retroactively rewritten.
 
 ## Why
 

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { FileProjectStore } from "@ai-native-qa-workbench/project-store";
 import { SqliteRuntimeStore } from "@ai-native-qa-workbench/runtime-store";
+import { ToolRegistry } from "@ai-native-qa-workbench/tool-runtime";
 
 const temporaryDirectories: string[] = [];
 
@@ -97,5 +98,59 @@ describe("SqliteRuntimeStore", () => {
 
     expect(quality.valid).toBe(true);
     expect(await readFile(qualityPath, "utf8")).toBe(before);
+  });
+
+  it("persists ToolRegistry audit records through the runtime store context", async () => {
+    const directory = await createTemporaryDirectory();
+    const runtime = new SqliteRuntimeStore(join(directory, "runtime.db"));
+    const sessionId = runtime.createSession({ projectRoot: directory, uiLocale: "en" });
+    const runId = runtime.appendRun({ sessionId, kind: "tool-execution" });
+    const registry = new ToolRegistry();
+    registry.register({
+      name: "quality.read",
+      permission: "read",
+      execute: async () => ({ ok: true }),
+    });
+
+    await registry.execute("quality.read", {}, { runtimeStore: runtime, runId });
+
+    expect(runtime.listToolRuns(runId)).toEqual([
+      expect.objectContaining({
+        toolName: "quality.read",
+        permission: "read",
+        status: "completed",
+      }),
+    ]);
+    runtime.close();
+  });
+
+  it("persists denied and failed ToolRegistry audits through the runtime store context", async () => {
+    const directory = await createTemporaryDirectory();
+    const runtime = new SqliteRuntimeStore(join(directory, "runtime.db"));
+    const sessionId = runtime.createSession({ projectRoot: directory, uiLocale: "en" });
+    const runId = runtime.appendRun({ sessionId, kind: "tool-execution" });
+    const registry = new ToolRegistry();
+    registry.register({
+      name: "proposal.apply",
+      permission: "write",
+      execute: async () => ({ ok: true }),
+    });
+    registry.register({
+      name: "quality.read",
+      permission: "read",
+      execute: async () => {
+        throw new Error("read failed");
+      },
+    });
+
+    await expect(
+      registry.execute("proposal.apply", {}, { runtimeStore: runtime, runId }),
+    ).rejects.toThrow("approval");
+    await expect(
+      registry.execute("quality.read", {}, { runtimeStore: runtime, runId }),
+    ).rejects.toThrow("read failed");
+
+    expect(runtime.listToolRuns(runId).map(({ status }) => status)).toEqual(["denied", "failed"]);
+    runtime.close();
   });
 });

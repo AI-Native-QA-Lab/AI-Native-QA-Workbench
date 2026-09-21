@@ -236,7 +236,7 @@ diagnostics，不会导致 validator 抛异常。
 | ---- | ---- |
 | `QUALITY_SCHEMA_UNSUPPORTED` | snapshot 的 schema version 不是 `0.1`。 |
 | `QUALITY_*_NOT_ARRAY` | 必需的质量集合不是数组。 |
-| `QUALITY_DUPLICATE_ID` | 同一个集合内重复出现 entity ID。 |
+| `QUALITY_DUPLICATE_ID` | 同一个集合内重复出现 ID，包括 `traceLinks`。 |
 | `QUALITY_REFERENCE_NOT_FOUND` | 直接实体引用无法在当前 snapshot 中解析。 |
 | `QUALITY_TRACE_LINK_INVALID` | TraceLink 结构或类型/关系组合不合法。 |
 | `QUALITY_TRACE_LINK_SELF_REFERENCE` | TraceLink 指向自身。 |
@@ -254,6 +254,9 @@ diagnostics，不会导致 validator 抛异常。
 
 validator 保留输入值和 diagnostics 顺序，不推断缺失链接、不改写标识符，也不修改
 snapshot。
+
+集合校验还要求每个合法 TraceLink 的端点都能解析到声明类型对应的实体；`traceLinks`
+集合内的 TraceLink ID 必须唯一。
 
 ## Relationship Boundary / 关系边界
 

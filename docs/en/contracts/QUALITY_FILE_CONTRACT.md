@@ -51,6 +51,10 @@ File writes are owned by the Project Store. Store implementations must write a
 same-directory temporary file and rename it atomically, cleaning up the temporary
 file if the write fails.
 
+Project initialization must refuse to overwrite an existing project or quality file.
+If paired initialization fails after creating the project file, the new project file
+must be removed so initialization does not leave a partial pair.
+
 ## Compatibility
 
 Changes to key names, collection order, diagnostic codes, diagnostic paths, or

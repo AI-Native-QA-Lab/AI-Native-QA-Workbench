@@ -7,12 +7,23 @@ export interface ToolDefinition<Input = unknown, Output = unknown> {
 }
 
 export interface ToolExecutionContext {
+  runId: string;
+  runtimeStore: ToolRuntimeAuditStore;
   approve?: (input: {
     toolName: string;
     permission: ToolPermission;
     input: unknown;
   }) => Promise<boolean>;
   audit?: (record: ToolAuditRecord) => unknown;
+}
+
+export interface ToolRuntimeAuditStore {
+  appendToolRun(input: {
+    runId: string;
+    toolName: string;
+    permission: ToolPermission;
+    status: ToolAuditRecord["status"];
+  }): string;
 }
 
 export interface ToolAuditRecord {
@@ -39,14 +50,26 @@ export class ToolRegistry implements ToolRegistryContract {
   async execute(name: string, input: unknown, context: ToolExecutionContext): Promise<unknown> {
     const tool = this.tools.get(name);
     if (!tool) throw new Error(`Unknown tool: ${name}`);
+    const runId = context?.runId;
+    const runtimeStore = context?.runtimeStore;
+    if (!runId || !runtimeStore) {
+      throw new Error("runId and runtimeStore are required for tool audit.");
+    }
 
     const audit = async (status: ToolAuditRecord["status"], error?: string): Promise<void> => {
-      await context.audit?.({
+      const record: ToolAuditRecord = {
         toolName: tool.name,
         permission: tool.permission,
         status,
         ...(error ? { error } : {}),
+      };
+      runtimeStore.appendToolRun({
+        runId,
+        toolName: record.toolName,
+        permission: record.permission,
+        status: record.status,
       });
+      await context.audit?.(record);
     };
 
     if (tool.permission !== "read") {

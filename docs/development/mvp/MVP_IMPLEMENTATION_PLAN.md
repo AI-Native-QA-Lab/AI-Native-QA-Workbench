@@ -2,6 +2,10 @@
 
 > **状态：实现完成（2026-09-21）**。本计划中的能力已在本地 `main` 工作区完成并通过离线质量门禁与浏览器 Golden Path。`v0.1.0` 仍保留为 Bootstrap Release；是否创建新的 MVP closeout Release 需要单独的发布决策。
 
+> **范围对齐：** 本文件早期的 Epic 占位项曾包含更大的运行时设想。当前
+> v0.1 交付范围以 [`v0.1 MVP 完成设计`](../../superpowers/specs/2026-09-21-v0-1-mvp-completion-design.md)
+> 和实际 Contract 为准；未实现的占位项明确标记为后续能力，不作为本版本遗漏。
+
 ## 实际交付范围
 
 本次一次性交付了 Project Store、QualitySnapshot/Traceability、SQLite Runtime Store、Tool Registry、MockProvider、OpenAI-compatible Provider、Agent Execution Loop、QA Task Loop、ChangeProposal/Human Review、Requirement Analysis、CLI、Fastify Local API、React/Vite Workbench、独立的 `uiLocale`/`outputLocale`、双语 Contract 和无网络 Golden Path E2E。
@@ -70,18 +74,23 @@ Workflow。
 -   agent_sessions
 -   agent_runs
 -   agent_steps
--   model_invocations
 -   tool_runs
--   workflow_runs
 -   approval_requests
+-   workflow_runs
+-   Migration version and runtime-only storage boundary
+
+v0.1 不包含独立的 `model_invocations` 表或 API；模型调用遥测属于后续运行时
+能力，不能从当前 MVP 的 Runtime Store 交付中推断出来。
 
 ### EPIC-007 Traceability
 
 -   embedded links
 -   explicit TraceLink
--   graph builder
--   validation
--   rebuildable index
+-   deterministic collection/link validation
+-   rebuild traceability counts during QA Task re-evaluation
+
+v0.1 不建立独立图数据库或远程/持久化 graph index；TraceLink 保存在
+`.ai-qa/quality.yaml`，rebuild 只重新加载、校验并派生本地计数。
 
 ### EPIC-008 Tool Runtime
 
@@ -101,21 +110,24 @@ Workflow。
 ### EPIC-010 Agent Runtime
 
 -   state machine
--   streaming
--   tool loop
 -   maxSteps
 -   timeout
 -   cancel
 -   pause/resume
 -   waiting_for_approval
 
+v0.1 提供有界的 Provider 调用和 state/step/approval 事件，但不包含 token
+streaming 或 Agent 内置的 provider-tool orchestration；这些属于后续运行时能力。
+
 ### EPIC-011 QA Task Loop
 
--   QualityTask
--   QualityTaskRun
+-   QualityTaskLoop
 -   Completion Contract
 -   Completion Validator
 -   re-evaluate loop
+
+v0.1 使用本地 `QualityTaskLoop` 结果和确定性集合计数，不持久化独立的
+`QualityTaskRun` 实体；耐久任务运行模型属于后续版本。
 
 ### EPIC-012 Change Proposal
 

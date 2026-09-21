@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -93,6 +93,22 @@ describe("FileProjectStore quality boundary", () => {
     );
   });
 
+  it("refuses to initialize over an existing quality file", async () => {
+    const directory = await createTemporaryDirectory();
+    const qualityPath = join(directory, QUALITY_FILE_RELATIVE_PATH);
+    const before = "existing quality data\n";
+    await mkdir(join(directory, ".ai-qa"), { recursive: true });
+    await writeFile(qualityPath, before, "utf8");
+
+    const result = await new FileProjectStore().initProject({ rootDirectory: directory });
+
+    expect(result.created).toBe(false);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "QUALITY_FILE_EXISTS", path: QUALITY_FILE_RELATIVE_PATH }),
+    );
+    await expect(readFile(qualityPath, "utf8")).resolves.toBe(before);
+  });
+
   it("rejects an invalid snapshot before creating a temporary file", async () => {
     const directory = await createTemporaryDirectory();
     const store = new FileProjectStore();
@@ -158,5 +174,40 @@ describe("FileProjectStore quality boundary", () => {
     expect(stale.diagnostics).toContainEqual(
       expect.objectContaining({ code: "PROPOSAL_BASE_REVISION_STALE" }),
     );
+  });
+
+  it("returns diagnostics when proposal operations conflict after an earlier operation", async () => {
+    const directory = await createTemporaryDirectory();
+    const store = new FileProjectStore();
+    await store.initProject({ rootDirectory: directory });
+    const seeded = {
+      ...emptySnapshot(),
+      requirements: [{ id: "checkout", title: "Checkout", description: "Checkout flow" }],
+    };
+    const seedWrite = await store.writeQuality(directory, seeded);
+    const proposal = reviewProposal(
+      createProposal(
+        seeded,
+        [
+          { kind: "delete", entityType: "requirement", id: "checkout" },
+          {
+            kind: "update",
+            entityType: "requirement",
+            id: "checkout",
+            entity: { id: "checkout", title: "Updated", description: "Checkout flow" },
+          },
+        ],
+        seedWrite.revision ?? "",
+      ),
+      { reviewer: "nao", decision: "approve" },
+    );
+
+    const result = await applyApprovedProposal(store, directory, proposal);
+
+    expect(result.applied).toBe(false);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "PROPOSAL_TARGET_NOT_FOUND", path: "operations[1].id" }),
+    );
+    expect((await store.readQuality(directory)).revision).toBe(seedWrite.revision);
   });
 });

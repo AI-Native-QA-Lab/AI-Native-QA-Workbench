@@ -14,5 +14,8 @@ The runner supports `maxSteps`, timeout, cancellation, pause/resume, and approva
 resume. `AgentEvent` reports state, step, and approval transitions. A provider is
 injected through the `ModelProvider` contract; CI uses `MockProvider`.
 
+The v0.1 runner is bounded request/response execution. It does not provide token
+streaming or provider-owned tool orchestration; those are later runtime capabilities.
+
 Runtime audit belongs in the SQLite runtime store. QA business completion belongs
 to `QualityTaskLoop` and its deterministic Completion Contract.

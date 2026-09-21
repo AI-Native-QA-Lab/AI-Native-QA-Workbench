@@ -2,8 +2,9 @@
 
 ## 当前状态
 
-`v0.1.0` tag 是 Bootstrap Release。剩余 v0.1 MVP 实现已经在尚未发布的
-closeout 工作区完成；不会重写 Bootstrap tag。
+`v0.1.0` tag 是 Bootstrap Release。剩余 v0.1 MVP 实现已经在尚未发布的本地
+closeout 完成；closeout 提交尚未推送或作为新的 tag/Release 发布，也不会重写
+Bootstrap tag。
 
 ## 快速开始
 
@@ -13,6 +14,12 @@ pnpm qaw init ./example-project
 pnpm qaw validate ./example-project
 pnpm qaw doctor ./example-project
 pnpm qaw open ./example-project
+```
+
+`qaw init` 创建的是空的 `quality.yaml`，不会自动创建 Requirement。执行下面的分析
+示例前，请先在 `.ai-qa/quality.yaml` 中加入 ID 为 `checkout` 的有效 Requirement：
+
+```bash
 pnpm qaw analyze checkout ./example-project
 ```
 

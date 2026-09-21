@@ -463,6 +463,7 @@ export function validateQualitySnapshot(snapshot: QualitySnapshot): ValidationRe
     });
   }
 
+  const seenTraceLinkIds = new Set<string>();
   const seenTraceLinks = new Set<string>();
   traceLinks.forEach((value, index) => {
     const path = `traceLinks[${index}]`;
@@ -492,6 +493,18 @@ export function validateQualitySnapshot(snapshot: QualitySnapshot): ValidationRe
     }
 
     const completeLink = link as TraceLink;
+    if (seenTraceLinkIds.has(completeLink.id)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_DUPLICATE_ID",
+          `${path}.id`,
+          `Duplicate traceLinks id: ${completeLink.id}`,
+        ),
+      );
+    } else {
+      seenTraceLinkIds.add(completeLink.id);
+    }
+
     if (!hasAllowedTraceCombination(completeLink)) {
       diagnostics.push(
         collectionDiagnostic(
@@ -501,6 +514,25 @@ export function validateQualitySnapshot(snapshot: QualitySnapshot): ValidationRe
         ),
       );
       return;
+    }
+
+    if (!ids.get(completeLink.fromType)?.has(completeLink.fromId)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_REFERENCE_NOT_FOUND",
+          `${path}.fromId`,
+          `Referenced ${completeLink.fromType} does not exist: ${completeLink.fromId}`,
+        ),
+      );
+    }
+    if (!ids.get(completeLink.toType)?.has(completeLink.toId)) {
+      diagnostics.push(
+        collectionDiagnostic(
+          "QUALITY_REFERENCE_NOT_FOUND",
+          `${path}.toId`,
+          `Referenced ${completeLink.toType} does not exist: ${completeLink.toId}`,
+        ),
+      );
     }
 
     if (

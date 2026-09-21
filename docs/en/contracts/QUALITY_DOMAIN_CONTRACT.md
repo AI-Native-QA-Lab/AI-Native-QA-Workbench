@@ -248,7 +248,7 @@ these collection-level codes when applicable:
 | --- | --- |
 | `QUALITY_SCHEMA_UNSUPPORTED` | The snapshot schema version is not `0.1`. |
 | `QUALITY_*_NOT_ARRAY` | A required quality collection is not an array. |
-| `QUALITY_DUPLICATE_ID` | An entity ID is repeated within its collection. |
+| `QUALITY_DUPLICATE_ID` | An ID is repeated within its collection, including `traceLinks`. |
 | `QUALITY_REFERENCE_NOT_FOUND` | A direct entity reference does not resolve in the snapshot. |
 | `QUALITY_TRACE_LINK_INVALID` | A trace link shape or type/relation combination is invalid. |
 | `QUALITY_TRACE_LINK_SELF_REFERENCE` | A trace link points from an entity to itself. |
@@ -266,6 +266,9 @@ The supported semantic TraceLink combinations are:
 
 The validator preserves input values and diagnostic order. It does not infer missing links,
 rewrite identifiers, or mutate the snapshot.
+
+Collection validation also requires every valid TraceLink endpoint to resolve to an entity of
+the declared type. TraceLink IDs are unique within the `traceLinks` collection.
 
 ## Relationship Boundary
 

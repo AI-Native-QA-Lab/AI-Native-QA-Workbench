@@ -1,5 +1,11 @@
 # 仓库启动与项目文件契约实施计划
 
+> **历史记录（2026-09-21）：** 本文保留 v0.1 Bootstrap 初始垂直切片的原始
+> 执行清单和当时的勾选状态。该阶段已经由后续实现和
+> [`v0.1 MVP 完成实施计划`](2026-09-21-v0-1-mvp-completion.md) 接管；本文中
+> 未勾选的历史步骤不再作为当前 v0.1 MVP closeout 的完成门禁。当前状态以最新
+> 完成设计、验证记录和实际提交为准。
+
 > **给 agent worker：** 必须使用 superpowers:executing-plans（或
 > superpowers:subagent-driven-development）逐任务执行本计划。每个步骤使用
 > checkbox 跟踪，并在进入下一任务前完成该任务的验证。

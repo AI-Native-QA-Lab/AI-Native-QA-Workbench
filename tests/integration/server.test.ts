@@ -77,4 +77,34 @@ describe("local Fastify server", () => {
 
     await server.close();
   });
+
+  it("rejects invalid locale and decision values at the HTTP boundary", async () => {
+    const rootDirectory = await createProject();
+    const server = await buildServer({
+      rootDirectory,
+      provider: createMockRequirementAnalysisProvider(),
+    });
+
+    const invalidLocale = await server.inject({
+      method: "POST",
+      url: "/api/analysis",
+      payload: { requirementId: "checkout", outputLocale: "fr" },
+    });
+    expect(invalidLocale.statusCode).toBe(400);
+
+    const analysis = await server.inject({
+      method: "POST",
+      url: "/api/analysis",
+      payload: { requirementId: "checkout", outputLocale: "en" },
+    });
+    const proposal = analysis.json<{ proposal: { id: string } }>();
+    const invalidDecision = await server.inject({
+      method: "POST",
+      url: `/api/proposals/${proposal.proposal.id}/decision`,
+      payload: { reviewer: "nao", decision: "maybe", approvedOperationIndexes: [0] },
+    });
+    expect(invalidDecision.statusCode).toBe(400);
+
+    await server.close();
+  });
 });
