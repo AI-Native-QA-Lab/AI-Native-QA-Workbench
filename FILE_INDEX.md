@@ -63,3 +63,4 @@
 -   `docs/superpowers/specs/2026-09-20-quality-domain-requirement-contract-design.md`
 -   `docs/superpowers/plans/2026-09-20-quality-risk-test-obligation-domain-contract.md`
 -   `docs/superpowers/specs/2026-09-20-quality-risk-test-obligation-domain-contract-design.md`
+-   `docs/superpowers/specs/2026-09-21-test-case-domain-contract-design.md`
