@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@ai-native-qa-workbench/domain": ["../domain/src/index.ts"],
+      "@ai-native-qa-workbench/project-store": ["../project-store/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

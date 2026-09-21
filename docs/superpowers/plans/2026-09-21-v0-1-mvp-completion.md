@@ -85,13 +85,13 @@
 
 **步骤：**
 
-- [ ] 先写质量文件缺失、原子写入、临时文件清理、Proposal 状态和 stale base revision 的 RED 测试。
-- [ ] 实现 FileProjectStore 的 quality read/write/validate 和 revision hash。
-- [ ] 先写 approve/reject/partial approval、重复操作和关系校验 RED 测试。
-- [ ] 实现纯 Proposal 操作、显式 reviewer decision 和原子 apply。
-- [ ] 先写 MockProvider 生成 Proposal 且未 approve 不写文件的 RED 测试。
-- [ ] 实现 Requirement Analysis application service 和确定性 Completion Contract。
-- [ ] 运行 targeted integration/unit tests、`pnpm typecheck`、`pnpm build`，提交 `feat: add quality store and proposal application`。
+- [x] 先写质量文件缺失、原子写入、临时文件清理、Proposal 状态和 stale base revision 的 RED 测试。
+- [x] 实现 FileProjectStore 的 quality read/write/validate 和 revision hash。
+- [x] 先写 approve/reject/partial approval、重复操作和关系校验 RED 测试。
+- [x] 实现纯 Proposal 操作、显式 reviewer decision 和原子 apply。
+- [x] 先写确定性分析 Provider 生成 Proposal 且未 approve 不写文件的 RED 测试。
+- [x] 实现 Requirement Analysis application service；确定性 Completion Contract 在 Task 6 实现。
+- [x] 运行 targeted integration/unit tests、`pnpm typecheck`、`pnpm build`，提交 `feat: add quality store and proposal application`。
 
 ### Task 4：SQLite Runtime Store
 

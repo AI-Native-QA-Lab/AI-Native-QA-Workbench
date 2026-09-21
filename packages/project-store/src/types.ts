@@ -29,6 +29,14 @@ export interface StoreValidationResult {
   valid: boolean;
   project?: Project;
   projectQuality?: QualitySnapshot;
+  revision?: string;
+  diagnostics: readonly StoreDiagnostic[];
+}
+
+export interface QualityWriteResult {
+  written: boolean;
+  qualityPath: string;
+  revision?: string;
   diagnostics: readonly StoreDiagnostic[];
 }
 
@@ -48,4 +56,13 @@ export interface ProjectStore {
   }): Promise<InitProjectResult>;
 
   validateProject(rootDirectory: string): Promise<StoreValidationResult>;
+
+  readQuality(rootDirectory: string): Promise<StoreValidationResult>;
+
+  validateQuality(rootDirectory: string): Promise<StoreValidationResult>;
+
+  writeQuality(
+    rootDirectory: string,
+    projectQuality: QualitySnapshot,
+  ): Promise<QualityWriteResult>;
 }

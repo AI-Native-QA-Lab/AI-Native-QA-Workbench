@@ -200,6 +200,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/project-store
 
+  packages/application:
+    dependencies:
+      '@ai-native-qa-workbench/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ai-native-qa-workbench/project-store':
+        specifier: workspace:*
+        version: link:../project-store
+
   packages/domain: {}
 
   packages/project-store:

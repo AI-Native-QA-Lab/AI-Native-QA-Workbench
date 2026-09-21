@@ -1,0 +1,368 @@
+import {
+  validateQualitySnapshot,
+  type Diagnostic,
+  type QualitySnapshot,
+  type ValidationResult,
+} from "@ai-native-qa-workbench/domain";
+import type { ProjectStore, StoreDiagnostic } from "@ai-native-qa-workbench/project-store";
+
+export type ProposalEntityType =
+  "acceptanceCriterion" | "qualityRisk" | "testObligation" | "testCase" | "traceLink";
+
+export type QualityOperation =
+  | { kind: "create"; entityType: ProposalEntityType; entity: unknown }
+  | { kind: "update"; entityType: ProposalEntityType; id: string; entity: unknown }
+  | { kind: "delete"; entityType: ProposalEntityType; id: string };
+
+export type ProposalStatus =
+  "proposed" | "approved" | "rejected" | "partially-approved" | "applied";
+
+export interface HumanReview {
+  reviewer: string;
+  decision: "approve" | "reject" | "partial";
+  approvedOperationIndexes?: number[];
+}
+
+export interface ChangeProposal {
+  id: string;
+  baseRevision: string;
+  operations: QualityOperation[];
+  status: ProposalStatus;
+  review?: HumanReview;
+}
+
+export interface ApplyProposalResult {
+  applied: boolean;
+  proposal: ChangeProposal;
+  snapshot?: QualitySnapshot;
+  revision?: string;
+  diagnostics: readonly (Diagnostic | StoreDiagnostic)[];
+}
+
+const collectionFor: Record<ProposalEntityType, keyof QualitySnapshot> = {
+  acceptanceCriterion: "acceptanceCriteria",
+  qualityRisk: "qualityRisks",
+  testObligation: "testObligations",
+  testCase: "testCases",
+  traceLink: "traceLinks",
+};
+
+const proposalEntityTypes = new Set<ProposalEntityType>([
+  "acceptanceCriterion",
+  "qualityRisk",
+  "testObligation",
+  "testCase",
+  "traceLink",
+]);
+
+function diagnostic(code: Diagnostic["code"], path: string, message: string): Diagnostic {
+  return { code, message, path, severity: "error" };
+}
+
+function operationId(operation: QualityOperation): string | undefined {
+  if (operation.kind === "create") {
+    if (operation.entity === null || typeof operation.entity !== "object") return undefined;
+    const id = (operation.entity as { id?: unknown }).id;
+    return typeof id === "string" ? id : undefined;
+  }
+  return operation.id;
+}
+
+function entityExists(
+  snapshot: QualitySnapshot,
+  entityType: ProposalEntityType,
+  id: string,
+): boolean {
+  const collection = snapshot[collectionFor[entityType]];
+  return Array.isArray(collection)
+    ? collection.some(
+        (entity) =>
+          entity !== null && typeof entity === "object" && "id" in entity && entity.id === id,
+      )
+    : false;
+}
+
+function validateOperationEntity(
+  snapshot: QualitySnapshot,
+  operation: QualityOperation,
+  index: number,
+): Diagnostic[] {
+  if (operation.kind === "delete") return [];
+  const entity = operation.entity;
+  if (entity === null || typeof entity !== "object") {
+    return [
+      diagnostic(
+        "PROPOSAL_ENTITY_INVALID",
+        `operations[${index}].entity`,
+        "Operation entity must be an object.",
+      ),
+    ];
+  }
+
+  const candidate = { ...snapshot };
+  const collectionKey = collectionFor[operation.entityType];
+  const collection = Array.isArray(candidate[collectionKey]) ? candidate[collectionKey] : [];
+  candidate[collectionKey] = [...collection, entity] as never;
+  const validation = validateQualitySnapshot(candidate);
+  return validation.diagnostics
+    .filter((item) => item.path.startsWith(`${String(collectionKey)}[`))
+    .map((item) => ({
+      ...item,
+      path: `operations[${index}].${item.path.slice(String(collectionKey).length + 1).replace(/^\d+\]/, "entity")}`,
+    }));
+}
+
+export function createProposal(
+  _snapshot: QualitySnapshot,
+  operations: QualityOperation[],
+  baseRevision: string,
+  id = `proposal-${crypto.randomUUID()}`,
+): ChangeProposal {
+  return {
+    id,
+    baseRevision,
+    operations: structuredClone(operations),
+    status: "proposed",
+  };
+}
+
+export function validateChangeProposal(
+  proposal: ChangeProposal,
+  snapshot?: QualitySnapshot,
+): ValidationResult {
+  const candidate = (proposal ?? {}) as Partial<ChangeProposal>;
+  const diagnostics: Diagnostic[] = [];
+
+  if (!Array.isArray(candidate.operations) || candidate.operations.length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "PROPOSAL_EMPTY_OPERATIONS",
+        "operations",
+        "Proposal must contain at least one operation.",
+      ),
+    );
+  }
+  if (typeof candidate.baseRevision !== "string" || candidate.baseRevision.length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "PROPOSAL_BASE_REVISION_STALE",
+        "baseRevision",
+        "Proposal base revision is required.",
+      ),
+    );
+  }
+  if (
+    candidate.status !== "proposed" &&
+    candidate.status !== "approved" &&
+    candidate.status !== "rejected" &&
+    candidate.status !== "partially-approved" &&
+    candidate.status !== "applied"
+  ) {
+    diagnostics.push(
+      diagnostic("PROPOSAL_INVALID_STATUS", "status", "Proposal status is invalid."),
+    );
+  }
+  if (
+    (candidate.status === "approved" ||
+      candidate.status === "partially-approved" ||
+      candidate.status === "applied") &&
+    (!candidate.review ||
+      typeof candidate.review.reviewer !== "string" ||
+      candidate.review.reviewer.trim().length === 0)
+  ) {
+    diagnostics.push(
+      diagnostic(
+        "PROPOSAL_REVIEW_REQUIRED",
+        "review",
+        "A human review is required before approval or apply.",
+      ),
+    );
+  }
+
+  const seenCreates = new Set<string>();
+  for (const [index, operation] of (Array.isArray(candidate.operations)
+    ? candidate.operations
+    : []
+  ).entries()) {
+    const path = `operations[${index}]`;
+    if (operation === null || typeof operation !== "object") {
+      diagnostics.push(diagnostic("PROPOSAL_ENTITY_INVALID", path, "Operation must be an object."));
+      continue;
+    }
+    if (operation.kind !== "create" && operation.kind !== "update" && operation.kind !== "delete") {
+      diagnostics.push(
+        diagnostic("PROPOSAL_ENTITY_INVALID", `${path}.kind`, "Operation kind is invalid."),
+      );
+      continue;
+    }
+    if (!proposalEntityTypes.has(operation.entityType)) {
+      diagnostics.push(
+        diagnostic(
+          "PROPOSAL_ENTITY_TYPE_INVALID",
+          `${path}.entityType`,
+          "Operation entity type is invalid.",
+        ),
+      );
+      continue;
+    }
+
+    const id = operationId(operation);
+    if (!id) {
+      diagnostics.push(
+        diagnostic(
+          "PROPOSAL_OPERATION_ID_REQUIRED",
+          `${path}.${operation.kind === "create" ? "entity.id" : "id"}`,
+          "Operation entity id is required.",
+        ),
+      );
+    }
+
+    if (operation.kind === "create") {
+      if (id) {
+        const createKey = `${operation.entityType}:${id}`;
+        if (seenCreates.has(createKey)) {
+          diagnostics.push(
+            diagnostic(
+              "PROPOSAL_DUPLICATE_CREATE",
+              path,
+              "The same entity is created more than once.",
+            ),
+          );
+        } else {
+          seenCreates.add(createKey);
+        }
+        if (snapshot && entityExists(snapshot, operation.entityType, id)) {
+          diagnostics.push(
+            diagnostic(
+              "PROPOSAL_DUPLICATE_CREATE",
+              path,
+              "The entity already exists in the current snapshot.",
+            ),
+          );
+        }
+      }
+      if (snapshot) diagnostics.push(...validateOperationEntity(snapshot, operation, index));
+    } else if (id && snapshot && !entityExists(snapshot, operation.entityType, id)) {
+      diagnostics.push(
+        diagnostic(
+          "PROPOSAL_TARGET_NOT_FOUND",
+          `${path}.${operation.kind === "delete" ? "id" : "id"}`,
+          "Update or delete target does not exist.",
+        ),
+      );
+    }
+  }
+
+  return { valid: diagnostics.length === 0, diagnostics };
+}
+
+export function reviewProposal(proposal: ChangeProposal, review: HumanReview): ChangeProposal {
+  if (review.reviewer.trim().length === 0) throw new Error("Reviewer is required.");
+  if (review.decision === "partial") {
+    const indexes = review.approvedOperationIndexes ?? [];
+    if (indexes.some((index) => index < 0 || index >= proposal.operations.length)) {
+      throw new Error("Partial review contains an invalid operation index.");
+    }
+  }
+
+  const status: ProposalStatus =
+    review.decision === "approve"
+      ? "approved"
+      : review.decision === "reject"
+        ? "rejected"
+        : "partially-approved";
+  return { ...proposal, status, review: structuredClone(review) };
+}
+
+function applyOperation(snapshot: QualitySnapshot, operation: QualityOperation): void {
+  const collectionKey = collectionFor[operation.entityType];
+  const collection = snapshot[collectionKey] as Array<{ id?: string }>;
+
+  if (operation.kind === "create") {
+    collection.push(structuredClone(operation.entity) as { id?: string });
+    return;
+  }
+  const index = collection.findIndex((entity) => entity.id === operation.id);
+  if (index < 0) throw new Error(`Proposal target not found: ${operation.id}`);
+  if (operation.kind === "update")
+    collection[index] = structuredClone(operation.entity) as { id?: string };
+  if (operation.kind === "delete") collection.splice(index, 1);
+}
+
+export async function applyApprovedProposal(
+  store: ProjectStore,
+  rootDirectory: string,
+  proposal: ChangeProposal,
+): Promise<ApplyProposalResult> {
+  const current = await store.readQuality(rootDirectory);
+  if (!current.valid || !current.projectQuality || !current.revision) {
+    return { applied: false, proposal, diagnostics: current.diagnostics };
+  }
+  if (current.revision !== proposal.baseRevision) {
+    return {
+      applied: false,
+      proposal,
+      diagnostics: [
+        diagnostic(
+          "PROPOSAL_BASE_REVISION_STALE",
+          "baseRevision",
+          "Proposal base revision is stale.",
+        ),
+      ],
+    };
+  }
+  if (proposal.status === "rejected") {
+    return {
+      applied: false,
+      proposal,
+      diagnostics: [
+        diagnostic("PROPOSAL_REJECTED", "status", "Rejected proposals cannot be applied."),
+      ],
+    };
+  }
+  if (
+    (proposal.status !== "approved" && proposal.status !== "partially-approved") ||
+    !proposal.review ||
+    proposal.review.reviewer.trim().length === 0
+  ) {
+    return {
+      applied: false,
+      proposal,
+      diagnostics: [
+        diagnostic(
+          "PROPOSAL_NOT_APPROVED",
+          "status",
+          "Proposal requires explicit human approval before apply.",
+        ),
+      ],
+    };
+  }
+
+  const validation = validateChangeProposal(proposal, current.projectQuality);
+  if (!validation.valid) return { applied: false, proposal, diagnostics: validation.diagnostics };
+
+  const next = structuredClone(current.projectQuality);
+  const approvedIndexes =
+    proposal.status === "partially-approved"
+      ? new Set(proposal.review.approvedOperationIndexes ?? [])
+      : undefined;
+  proposal.operations.forEach((operation, index) => {
+    if (!approvedIndexes || approvedIndexes.has(index)) applyOperation(next, operation);
+  });
+
+  const nextValidation = validateQualitySnapshot(next);
+  if (!nextValidation.valid)
+    return { applied: false, proposal, diagnostics: nextValidation.diagnostics };
+
+  const written = await store.writeQuality(rootDirectory, next);
+  if (!written.written || !written.revision) {
+    return { applied: false, proposal, diagnostics: written.diagnostics };
+  }
+  return {
+    applied: true,
+    proposal: { ...proposal, status: "applied" },
+    snapshot: next,
+    revision: written.revision,
+    diagnostics: [],
+  };
+}
