@@ -3,10 +3,12 @@ import {
   validateAcceptanceCriterion,
   validateRequirement,
   validateQualityRisk,
+  validateTestCase,
   validateTestObligation,
   type AcceptanceCriterion,
   type QualityRisk,
   type Requirement,
+  type TestCase,
   type TestObligation,
 } from "@ai-native-qa-workbench/domain";
 
@@ -285,6 +287,165 @@ describe("validateTestObligation", () => {
         severity,
       })),
     ).toEqual([{ code, path, severity: "error" }]);
+  });
+});
+
+describe("validateTestCase", () => {
+  it("accepts Chinese multiline fields and preserves the input", () => {
+    const testCase: TestCase = {
+      id: "login-idempotency",
+      obligationId: "login-idempotency-check",
+      title: "  重复提交不会创建重复订单  ",
+      steps: "  1. 用户已登录\n2. 重复提交同一请求  ",
+      expectedResult: "只创建一个订单并返回相同订单号",
+    };
+    const before = structuredClone(testCase);
+
+    expect(validateTestCase(testCase)).toEqual({ valid: true, diagnostics: [] });
+    expect(testCase).toEqual(before);
+  });
+
+  it("accepts a syntactically valid but currently unresolved obligationId", () => {
+    expect(
+      validateTestCase({
+        id: "case-1",
+        obligationId: "obligation-not-loaded",
+        title: "A valid test case",
+        steps: "Perform the scenario",
+        expectedResult: "The expected behavior is observable",
+      }),
+    ).toEqual({ valid: true, diagnostics: [] });
+  });
+
+  it("reports all fields in contract order", () => {
+    const result = validateTestCase({
+      id: "a--b",
+      obligationId: "Bad_ID",
+      title: " \n\t",
+      steps: "",
+      expectedResult: "  \t",
+    } as unknown as TestCase);
+
+    expect(
+      result.diagnostics.map(({ code, path, severity }) => ({ code, path, severity })),
+    ).toEqual([
+      { code: "TEST_CASE_ID_INVALID", path: "id", severity: "error" },
+      {
+        code: "TEST_CASE_OBLIGATION_ID_INVALID",
+        path: "obligationId",
+        severity: "error",
+      },
+      { code: "TEST_CASE_TITLE_EMPTY", path: "title", severity: "error" },
+      { code: "TEST_CASE_STEPS_EMPTY", path: "steps", severity: "error" },
+      {
+        code: "TEST_CASE_EXPECTED_RESULT_EMPTY",
+        path: "expectedResult",
+        severity: "error",
+      },
+    ]);
+  });
+
+  it.each([undefined, null, 42, "not-an-object"])(
+    "returns the five diagnostics for malformed whole input %j",
+    (value) => {
+      const validate = () => validateTestCase(value as unknown as TestCase);
+
+      expect(validate).not.toThrow();
+      expect(
+        validate().diagnostics.map(({ code, path, severity }) => ({
+          code,
+          path,
+          severity,
+        })),
+      ).toEqual([
+        { code: "TEST_CASE_ID_INVALID", path: "id", severity: "error" },
+        {
+          code: "TEST_CASE_OBLIGATION_ID_INVALID",
+          path: "obligationId",
+          severity: "error",
+        },
+        { code: "TEST_CASE_TITLE_EMPTY", path: "title", severity: "error" },
+        { code: "TEST_CASE_STEPS_EMPTY", path: "steps", severity: "error" },
+        {
+          code: "TEST_CASE_EXPECTED_RESULT_EMPTY",
+          path: "expectedResult",
+          severity: "error",
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    ["id", 42, "TEST_CASE_ID_INVALID", "id"],
+    ["obligationId", null, "TEST_CASE_OBLIGATION_ID_INVALID", "obligationId"],
+    ["title", 42, "TEST_CASE_TITLE_EMPTY", "title"],
+    ["steps", null, "TEST_CASE_STEPS_EMPTY", "steps"],
+    ["expectedResult", 42, "TEST_CASE_EXPECTED_RESULT_EMPTY", "expectedResult"],
+  ])("returns a diagnostic for malformed %s", (field, value, code, path) => {
+    const testCase = {
+      id: "case-1",
+      obligationId: "obligation-1",
+      title: "valid title",
+      steps: "valid steps",
+      expectedResult: "valid expected result",
+      [field]: value,
+    } as unknown as TestCase;
+
+    expect(() => validateTestCase(testCase)).not.toThrow();
+    expect(
+      validateTestCase(testCase).diagnostics.map(({ code, path, severity }) => ({
+        code,
+        path,
+        severity,
+      })),
+    ).toEqual([{ code, path, severity: "error" }]);
+  });
+});
+
+const invalidTestCaseIds = [
+  "中文",
+  "has space",
+  "Bad_ID",
+  "has.dot",
+  "a--b",
+  "-leading",
+  "trailing-",
+  "",
+];
+
+describe("TestCase identifier validation", () => {
+  it.each(invalidTestCaseIds)("rejects TestCase.id %j", (id) => {
+    expect(
+      validateTestCase({
+        id,
+        obligationId: "obligation-1",
+        title: "valid",
+        steps: "valid",
+        expectedResult: "valid",
+      }).diagnostics,
+    ).toContainEqual({
+      code: "TEST_CASE_ID_INVALID",
+      message: expect.any(String),
+      path: "id",
+      severity: "error",
+    });
+  });
+
+  it.each(invalidTestCaseIds)("rejects TestCase.obligationId %j", (obligationId) => {
+    expect(
+      validateTestCase({
+        id: "case-1",
+        obligationId,
+        title: "valid",
+        steps: "valid",
+        expectedResult: "valid",
+      }).diagnostics,
+    ).toContainEqual({
+      code: "TEST_CASE_OBLIGATION_ID_INVALID",
+      message: expect.any(String),
+      path: "obligationId",
+      severity: "error",
+    });
   });
 });
 
