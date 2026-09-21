@@ -1,6 +1,6 @@
 # Quality Domain Contract
 
-**Status:** Implemented v0.1 MVP domain slice.
+**Status:** Implemented v0.1 MVP domain and collection contract.
 
 **Canonical implementation:** `packages/domain/src/quality-domain.ts`
 
@@ -51,6 +51,32 @@ export interface TestCase {
   steps: string;
   expectedResult: string;
 }
+
+export type QualityEntityType =
+  | "requirement"
+  | "acceptance-criterion"
+  | "quality-risk"
+  | "test-obligation"
+  | "test-case";
+
+export interface TraceLink {
+  id: string;
+  fromType: QualityEntityType;
+  fromId: string;
+  toType: QualityEntityType;
+  toId: string;
+  relation: "satisfies" | "mitigates" | "verifies";
+}
+
+export interface QualitySnapshot {
+  schemaVersion: "0.1";
+  requirements: Requirement[];
+  acceptanceCriteria: AcceptanceCriterion[];
+  qualityRisks: QualityRisk[];
+  testObligations: TestObligation[];
+  testCases: TestCase[];
+  traceLinks: TraceLink[];
+}
 ```
 
 `AcceptanceCriterion.requirementId` and `QualityRisk.requirementId` are explicit
@@ -58,6 +84,10 @@ references instead of nested copies of the requirement. `TestObligation.riskId` 
 explicit reference to the quality risk. `TestCase.obligationId` is an explicit
 reference to the test obligation. The current single-entity validators do not resolve
 these references.
+
+`QualitySnapshot` is the in-memory boundary for the project-quality collections.
+`validateQualitySnapshot` adds schema-version, collection-shape, duplicate-ID, direct-reference,
+and TraceLink relationship checks. It is a pure read and performs no file or database I/O.
 
 ## Validation API
 
@@ -73,6 +103,8 @@ export function validateQualityRisk(risk: QualityRisk): ValidationResult;
 export function validateTestObligation(obligation: TestObligation): ValidationResult;
 
 export function validateTestCase(testCase: TestCase): ValidationResult;
+
+export function validateQualitySnapshot(snapshot: QualitySnapshot): ValidationResult;
 ```
 
 Callers that receive untrusted runtime data may pass it through the typed API after
@@ -207,6 +239,34 @@ the wrong primitive type produces diagnostics and does not cause a validator to 
 All five validators are pure reads. They do not mutate the input object, normalize
 strings, create defaults, perform I/O, or call external services.
 
+## QualitySnapshot and TraceLink Validation
+
+The canonical quality schema version is `"0.1"`. A collection validation result reports
+these collection-level codes when applicable:
+
+| Code | Meaning |
+| --- | --- |
+| `QUALITY_SCHEMA_UNSUPPORTED` | The snapshot schema version is not `0.1`. |
+| `QUALITY_*_NOT_ARRAY` | A required quality collection is not an array. |
+| `QUALITY_DUPLICATE_ID` | An entity ID is repeated within its collection. |
+| `QUALITY_REFERENCE_NOT_FOUND` | A direct entity reference does not resolve in the snapshot. |
+| `QUALITY_TRACE_LINK_INVALID` | A trace link shape or type/relation combination is invalid. |
+| `QUALITY_TRACE_LINK_SELF_REFERENCE` | A trace link points from an entity to itself. |
+| `QUALITY_TRACE_LINK_DUPLICATE` | The same trace edge is declared more than once. |
+
+The supported semantic TraceLink combinations are:
+
+| From | Relation | To |
+| --- | --- | --- |
+| `requirement` | `satisfies` | `requirement` |
+| `acceptance-criterion` | `satisfies` | `requirement` |
+| `quality-risk` | `mitigates` | `requirement` |
+| `test-obligation` | `verifies` | `quality-risk` |
+| `test-case` | `verifies` | `test-obligation` |
+
+The validator preserves input values and diagnostic order. It does not infer missing links,
+rewrite identifiers, or mutate the snapshot.
+
 ## Relationship Boundary
 
 The `AcceptanceCriterion` and `QualityRisk` validators check only the syntax of their
@@ -214,8 +274,8 @@ The `AcceptanceCriterion` and `QualityRisk` validators check only the syntax of 
 its `riskId` reference. The `TestCase` validator checks only the syntax of its
 `obligationId` reference. These validators do not check whether referenced entities
 exist because a single-entity validator has no collection context. Collection-level
-duplicate IDs, broken references, and graph completeness belong to a future Project
-Store or Traceability contract.
+duplicate IDs and broken references are provided by `validateQualitySnapshot`; graph
+completeness and coverage policies remain outside this contract.
 
 `QualityRisk` does not require an `acceptanceCriterionId`; a risk may cover multiple
 acceptance criteria. More specific criterion links belong to a future Traceability
@@ -231,7 +291,7 @@ This contract does not define:
   `testLevel`, `locale`, timestamps, or AI metadata for QualityRisk/TestObligation;
 - `status`, `priority`, `kind`, `automationRef`, execution targets, run results,
   step arrays, parameterization, or assertion DSLs for TestCase;
-- `TraceLink` creation or graph completeness;
+- TraceLink creation workflows, graph completeness, or coverage policy;
 - AI generation, provider calls, CLI commands, UI behavior, Evidence, or workflow state.
 
 The `.ai-qa/` project-quality source of truth remains unchanged by this Domain slice.

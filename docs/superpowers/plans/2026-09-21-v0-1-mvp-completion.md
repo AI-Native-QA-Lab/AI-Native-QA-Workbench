@@ -63,11 +63,11 @@
 
 **步骤：**
 
-- [ ] 先写重复 ID、断裂引用、非法关系、合法空快照和输入不变性的 RED 测试并确认失败。
-- [ ] 实现 Domain 集合校验和 `TraceLink` 关系约束。
-- [ ] 先写 YAML malformed/unknown-key/round-trip 的 RED contract tests 并确认失败。
-- [ ] 实现 quality YAML parser/serializer，不将质量实体复制到 SQLite。
-- [ ] 运行 targeted tests、`pnpm typecheck` 和 architecture test，提交 `feat: add quality snapshot and traceability contract`。
+- [x] 先写重复 ID、断裂引用、非法关系、合法空快照和输入不变性的 RED 测试并确认失败。
+- [x] 实现 Domain 集合校验和 `TraceLink` 关系约束。
+- [x] 先写 YAML malformed/unknown-key/round-trip 的 RED contract tests 并确认失败。
+- [x] 实现 quality YAML parser/serializer，不将质量实体复制到 SQLite。
+- [x] 运行 targeted tests、`pnpm typecheck` 和 architecture test，提交 `feat: add quality snapshot and traceability contract`。
 
 ### Task 3：Project Store 原子读写、ChangeProposal 和 Human Review
 

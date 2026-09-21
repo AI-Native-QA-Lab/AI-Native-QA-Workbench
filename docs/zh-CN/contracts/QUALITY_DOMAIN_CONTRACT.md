@@ -1,6 +1,6 @@
 # Quality Domain Contract
 
-**状态：** 已实现的 v0.1 MVP Domain 子切片。
+**状态：** 已实现的 v0.1 MVP Domain 与集合 Contract。
 
 **规范实现：** `packages/domain/src/quality-domain.ts`
 
@@ -49,12 +49,42 @@ export interface TestCase {
   steps: string;
   expectedResult: string;
 }
+
+export type QualityEntityType =
+  | "requirement"
+  | "acceptance-criterion"
+  | "quality-risk"
+  | "test-obligation"
+  | "test-case";
+
+export interface TraceLink {
+  id: string;
+  fromType: QualityEntityType;
+  fromId: string;
+  toType: QualityEntityType;
+  toId: string;
+  relation: "satisfies" | "mitigates" | "verifies";
+}
+
+export interface QualitySnapshot {
+  schemaVersion: "0.1";
+  requirements: Requirement[];
+  acceptanceCriteria: AcceptanceCriterion[];
+  qualityRisks: QualityRisk[];
+  testObligations: TestObligation[];
+  testCases: TestCase[];
+  traceLinks: TraceLink[];
+}
 ```
 
 `AcceptanceCriterion.requirementId` 和 `QualityRisk.requirementId` 是显式引用，
 不是 Requirement 的嵌套副本。`TestObligation.riskId` 是指向 QualityRisk 的显式
 引用。`TestCase.obligationId` 是指向 TestObligation 的显式引用。当前单实体
 validator 不解析这些引用。
+
+`QualitySnapshot` 是项目质量集合的内存边界。`validateQualitySnapshot` 在单实体
+validator 之上检查 schema version、集合类型、集合内重复 ID、直接引用是否存在，以及
+TraceLink 的关系类型、自引用和重复定义。它是纯读取操作，不执行文件或数据库 I/O。
 
 ## Validation API / 校验 API
 
@@ -70,6 +100,8 @@ export function validateQualityRisk(risk: QualityRisk): ValidationResult;
 export function validateTestObligation(obligation: TestObligation): ValidationResult;
 
 export function validateTestCase(testCase: TestCase): ValidationResult;
+
+export function validateQualitySnapshot(snapshot: QualitySnapshot): ValidationResult;
 ```
 
 边界适配器可以先将不可信运行时数据表示为对应的 TypeScript 类型，再调用 typed
@@ -196,13 +228,41 @@ diagnostics，不会导致 validator 抛异常。
 五个 validator 都是纯读取操作：不修改输入对象、不规范化字符串、不创建默认值、不
 进行 I/O，也不调用外部服务。
 
+## QualitySnapshot 与 TraceLink 校验
+
+规范的质量 schema version 是 `"0.1"`。集合校验会在需要时返回以下集合级 code：
+
+| Code | 含义 |
+| ---- | ---- |
+| `QUALITY_SCHEMA_UNSUPPORTED` | snapshot 的 schema version 不是 `0.1`。 |
+| `QUALITY_*_NOT_ARRAY` | 必需的质量集合不是数组。 |
+| `QUALITY_DUPLICATE_ID` | 同一个集合内重复出现 entity ID。 |
+| `QUALITY_REFERENCE_NOT_FOUND` | 直接实体引用无法在当前 snapshot 中解析。 |
+| `QUALITY_TRACE_LINK_INVALID` | TraceLink 结构或类型/关系组合不合法。 |
+| `QUALITY_TRACE_LINK_SELF_REFERENCE` | TraceLink 指向自身。 |
+| `QUALITY_TRACE_LINK_DUPLICATE` | 同一条 trace edge 被重复声明。 |
+
+支持的 TraceLink 语义组合如下：
+
+| From | Relation | To |
+| ---- | -------- | -- |
+| `requirement` | `satisfies` | `requirement` |
+| `acceptance-criterion` | `satisfies` | `requirement` |
+| `quality-risk` | `mitigates` | `requirement` |
+| `test-obligation` | `verifies` | `quality-risk` |
+| `test-case` | `verifies` | `test-obligation` |
+
+validator 保留输入值和 diagnostics 顺序，不推断缺失链接、不改写标识符，也不修改
+snapshot。
+
 ## Relationship Boundary / 关系边界
 
 `AcceptanceCriterion` 与 `QualityRisk` validator 只检查各自 `requirementId` 引用
 的语法；`TestObligation` validator 只检查 `riskId` 引用的语法；`TestCase` validator
 只检查 `obligationId` 引用的语法。它们不检查被引用的实体是否存在，因为单实体
 validator 没有集合上下文。集合级重复 ID、断裂引用和图完整性属于后续 Project Store
-或 Traceability Contract。
+或集合 Contract。现在由 `validateQualitySnapshot` 提供集合校验；图完整性和覆盖率
+策略仍不属于本 Contract。
 
 `QualityRisk` 不要求增加 `acceptanceCriterionId`；一个风险可以覆盖多个验收标准。
 更具体的验收标准关联属于未来 Traceability Contract。
@@ -217,7 +277,7 @@ validator 没有集合上下文。集合级重复 ID、断裂引用和图完整�
   `priority`、`owner`、`mitigation`、`testLevel`、`locale`、时间戳或 AI 元数据；
 - TestCase 的 `status`、`priority`、`kind`、`automationRef`、执行目标、运行结果、
   步骤数组、参数化和断言 DSL；
-- `TraceLink` 创建或图完整性；
+- TraceLink 创建工作流、图完整性或覆盖率策略；
 - AI 生成、Provider 调用、CLI 命令、UI 行为、Evidence 或 Workflow 状态。
 
 `.ai-qa/` 仍是项目质量数据的 Source of Truth，本 Domain 子切片不会修改它。
