@@ -29,9 +29,14 @@ export default defineConfig({
       "@ai-native-qa-workbench/server": fileURLToPath(
         new URL("./apps/server/src/server.ts", import.meta.url),
       ),
+      "@ai-native-qa-workbench/web": fileURLToPath(
+        new URL("./apps/web/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
+    environmentOptions: { jsdom: { url: "http://localhost" } },
+    setupFiles: ["./tests/setup-web.ts"],
   },
 });

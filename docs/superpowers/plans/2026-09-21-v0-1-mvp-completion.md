@@ -178,10 +178,10 @@
 
 **步骤：**
 
-- [ ] 先写 Testing Library RED component tests for English default, zh-CN switch, count rendering, proposal review and independent output locale。
-- [ ] 安装并配置 React/Vite/Router/i18next/Testing Library/jsdom dependencies。
-- [ ] 实现 API client、i18n resources、WorkbenchPage、ProposalReview 和 responsive styles。
-- [ ] 运行 component tests、web build、lint/typecheck；提交 `feat: add local workbench ui and i18n`。
+- [x] 先写 Testing Library RED component tests for English default, zh-CN switch, count rendering, proposal review and independent output locale。
+- [x] 安装并配置 React/Vite/Testing Library/jsdom dependencies；路由保持由本地 API 入口提供。
+- [x] 实现 API client、i18n resources、WorkbenchPage、ProposalReview 和 responsive styles。
+- [x] 运行 component tests、web build、lint/typecheck；提交 `feat: add local workbench ui and i18n`。
 
 ### Task 8：Golden Path E2E、CI 和文档
 
