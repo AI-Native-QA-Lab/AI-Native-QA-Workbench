@@ -7,6 +7,8 @@ compatibility guarantees before the v1.0 stable release.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-21
+
 - Imported the GitHub repository Blueprint and added the PolyForm
   Noncommercial License 1.0.0.
 - Added the pnpm workspace foundation with domain, project-store, and CLI
