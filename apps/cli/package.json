@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@ai-native-qa-workbench/application": "workspace:*",
+    "@ai-native-qa-workbench/domain": "workspace:*",
+    "@ai-native-qa-workbench/evidence": "workspace:*",
     "@ai-native-qa-workbench/project-store": "workspace:*"
   }
 }

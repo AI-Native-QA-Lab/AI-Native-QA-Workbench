@@ -220,6 +220,12 @@ importers:
       '@ai-native-qa-workbench/application':
         specifier: workspace:*
         version: link:../../packages/application
+      '@ai-native-qa-workbench/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@ai-native-qa-workbench/evidence':
+        specifier: workspace:*
+        version: link:../../packages/evidence
       '@ai-native-qa-workbench/project-store':
         specifier: workspace:*
         version: link:../../packages/project-store
