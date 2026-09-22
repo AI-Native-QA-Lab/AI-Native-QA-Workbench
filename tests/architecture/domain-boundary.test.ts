@@ -8,10 +8,17 @@ const domainSourceRoot = fileURLToPath(new URL("../../packages/domain/src", impo
 
 const forbiddenImports = [
   "node:fs",
+  "node:child_process",
+  "node:dns",
+  "node:http",
+  "node:net",
   "node:sqlite",
+  "node:tls",
+  "node:worker_threads",
   "yaml",
   "zod",
   "fastify",
+  "@fastify",
   "react",
   "openai",
   "anthropic",
@@ -23,6 +30,7 @@ const forbiddenImports = [
   "dsh",
   "vitest",
   "playwright",
+  "@playwright",
 ];
 
 interface ImportViolation {
@@ -87,6 +95,12 @@ async function findImportViolations(): Promise<ImportViolation[]> {
 }
 
 describe("domain architecture boundary", () => {
+  it("includes the Evidence domain module in the boundary scan", async () => {
+    const files = await collectTypeScriptFiles(domainSourceRoot);
+
+    expect(files).toContain(join(domainSourceRoot, "evidence-domain.ts"));
+  });
+
   it("does not import infrastructure, provider, or test dependencies", async () => {
     const violations = await findImportViolations();
 

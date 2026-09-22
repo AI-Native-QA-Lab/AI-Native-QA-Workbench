@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="登录套件" time="1.25">
+    <testcase name="通过-登录" time="0.1234"/>
+    <testcase name="失败-支付" time="0.2">
+      <failure message="assertion failed">expected paid</failure>
+    </testcase>
+    <testcase name="错误-网络">
+      <error message="connection refused"/>
+    </testcase>
+    <testcase name="跳过-短信" time="0">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>

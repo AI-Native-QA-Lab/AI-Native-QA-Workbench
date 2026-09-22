@@ -8,6 +8,9 @@ export default defineConfig({
       "@ai-native-qa-workbench/domain": fileURLToPath(
         new URL("./packages/domain/src/index.ts", import.meta.url),
       ),
+      "@ai-native-qa-workbench/evidence": fileURLToPath(
+        new URL("./packages/evidence/src/index.ts", import.meta.url),
+      ),
       "@ai-native-qa-workbench/project-store": fileURLToPath(
         new URL("./packages/project-store/src/index.ts", import.meta.url),
       ),

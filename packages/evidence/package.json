@@ -1,11 +1,18 @@
 {
-  "name": "@ai-native-qa-workbench/cli",
+  "name": "@ai-native-qa-workbench/evidence",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "qaw": "dist/main.js"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
@@ -13,9 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-native-qa-workbench/application": "workspace:*",
     "@ai-native-qa-workbench/domain": "workspace:*",
-    "@ai-native-qa-workbench/evidence": "workspace:*",
-    "@ai-native-qa-workbench/project-store": "workspace:*"
+    "saxes": "^6.0.0"
   }
 }
