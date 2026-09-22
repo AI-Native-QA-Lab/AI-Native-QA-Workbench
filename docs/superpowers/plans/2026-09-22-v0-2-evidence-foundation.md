@@ -395,7 +395,6 @@ it("does not guess a format from a JSON file", () => {
 
 - Modify: packages/project-store/src/types.ts
 - Modify: packages/project-store/src/evidence-store.ts
-- Modify: packages/project-store/src/index.ts
 - Modify: packages/application/package.json
 - Modify: packages/application/tsconfig.json
 - Modify: packages/application/tsconfig.build.json
@@ -476,6 +475,8 @@ export class EvidenceVerifyService implements EvidenceVerifier {
 ```
 
 EvidenceImportService derives a missing run ID as run-<format>-<rawArtifactSha256>, uses evidence-<runId>-<sha256.slice(0, 16)>, and takes the artifact ID from the store reference. Normalized idempotency comparison ignores only the new invocation’s provenance.importedAt; it compares the TestRun, source format/name, trust, artifact media type/size/checksum/path, and all other provenance fields. A matching existing record returns success with idempotent: true without replacing the manifest. A same-run ID with a different checksum or normalized TestRun returns EVIDENCE_IMPORT_CONFLICT.
+
+The project-store diagnostic union also carries adapter/report boundary failures (EVIDENCE_REPORT_MISSING, EVIDENCE_REPORT_READ_FAILED, EVIDENCE_REPORT_MALFORMED, EVIDENCE_REPORT_FIELD_INVALID, and EVIDENCE_REPORT_SECURITY_REJECTED) so the application can return parser failures without throwing or collapsing them into an import conflict.
 
 ### Steps
 
