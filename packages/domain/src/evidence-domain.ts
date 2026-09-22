@@ -120,6 +120,10 @@ function isSafeRelativePath(value: unknown): value is string {
   return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
 }
 
+function normalizedArtifactPath(value: string): string {
+  return value.replaceAll("\\", "/");
+}
+
 function isSha256(value: unknown): value is string {
   return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 }
@@ -373,7 +377,7 @@ function validateArtifact(
         "Artifact relativePath is unsafe.",
       ),
     );
-  } else if (artifactPaths.has(relativePath)) {
+  } else if (artifactPaths.has(normalizedArtifactPath(relativePath))) {
     diagnostics.push(
       diagnostic(
         "EVIDENCE_DUPLICATE_ARTIFACT_PATH",
@@ -382,7 +386,7 @@ function validateArtifact(
       ),
     );
   } else {
-    artifactPaths.add(relativePath);
+    artifactPaths.add(normalizedArtifactPath(relativePath));
   }
 
   if (!isNonEmptyString(value.mediaType)) {
@@ -582,11 +586,13 @@ export function validateEvidenceSnapshot(input: unknown): ValidationResult {
   }
 
   if (input.schemaVersion !== EVIDENCE_SCHEMA_VERSION) {
+    const schemaVersion =
+      typeof input.schemaVersion === "string" ? input.schemaVersion : "<invalid>";
     diagnostics.push(
       diagnostic(
         "EVIDENCE_SCHEMA_UNSUPPORTED",
         "schemaVersion",
-        "Unsupported evidence schema version: " + String(input.schemaVersion),
+        "Unsupported evidence schema version: " + schemaVersion,
       ),
     );
   }

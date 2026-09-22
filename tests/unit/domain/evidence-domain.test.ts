@@ -100,6 +100,19 @@ describe("validateEvidenceSnapshot", () => {
     expect(result.diagnostics.map(({ code }) => code)).toEqual(["EVIDENCE_TEST_RUNS_INVALID"]);
   });
 
+  it("does not throw when an unsupported schema version has an uncoercible value", () => {
+    const malformed = Object.create(null) as Record<string, unknown>;
+    malformed.schemaVersion = Object.create(null);
+    malformed.testRuns = [];
+    malformed.evidenceRecords = [];
+
+    expect(() => validateEvidenceSnapshot(malformed)).not.toThrow();
+    expect(validateEvidenceSnapshot(malformed)).toMatchObject({
+      valid: false,
+      diagnostics: [expect.objectContaining({ code: "EVIDENCE_SCHEMA_UNSUPPORTED" })],
+    });
+  });
+
   it.each([undefined, null, 42, "not-an-object", []])(
     "does not throw for malformed whole input %j",
     (value) => {
@@ -202,6 +215,23 @@ describe("validateEvidenceSnapshot", () => {
         "EVIDENCE_PROVENANCE_FORMAT_MISMATCH",
         "EVIDENCE_DUPLICATE_ARTIFACT_PATH",
       ]),
+    );
+  });
+
+  it("rejects artifact paths that alias across slash conventions", () => {
+    const snapshot = validSnapshot();
+    const second = structuredClone(snapshot.evidenceRecords[0]!);
+    snapshot.evidenceRecords[0]!.artifact.relativePath = "nested/artifact.bin";
+    second.id = "evidence-run-junit-login-bbbbbbbbbbbbbbbb";
+    second.artifact.id = "artifact-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    second.artifact.relativePath = "nested\\artifact.bin";
+    snapshot.evidenceRecords.push(second);
+
+    expect(validateEvidenceSnapshot(snapshot).diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "EVIDENCE_DUPLICATE_ARTIFACT_PATH",
+        path: "evidenceRecords[1].artifact.relativePath",
+      }),
     );
   });
 });

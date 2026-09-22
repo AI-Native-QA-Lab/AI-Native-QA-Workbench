@@ -125,6 +125,68 @@ describe("Evidence File Contract", () => {
     });
   });
 
+  it("rejects unknown keys throughout nested evidence records", () => {
+    const result = parseEvidenceFile(
+      [
+        'schemaVersion: "0.2"',
+        "evidence:",
+        "  testRuns:",
+        "    - id: run-junit-login",
+        "      format: junit",
+        "      status: passed",
+        "      unexpected: true",
+        "      results:",
+        "        - name: 登录成功",
+        "          status: passed",
+        "          unexpected: true",
+        "  evidenceRecords:",
+        "    - id: evidence-run-junit-login-aaaaaaaaaaaaaaaa",
+        "      testRunId: run-junit-login",
+        "      kind: test-result",
+        "      unexpected: true",
+        "      artifact:",
+        "        id: artifact-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "        relativePath: artifact.bin",
+        "        mediaType: application/xml",
+        "        sizeBytes: 12",
+        "        sha256: " + "a".repeat(64),
+        "        unexpected: true",
+        "      provenance:",
+        "        sourceFormat: junit",
+        "        sourceFileName: results.xml",
+        "        importedAt: 2026-09-22T01:00:00Z",
+        "        trust: unverified",
+        "        unexpected: true",
+      ].join("\n"),
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "EVIDENCE_UNKNOWN_KEY",
+          path: "evidence.testRuns[0].unexpected",
+        }),
+        expect.objectContaining({
+          code: "EVIDENCE_UNKNOWN_KEY",
+          path: "evidence.testRuns[0].results[0].unexpected",
+        }),
+        expect.objectContaining({
+          code: "EVIDENCE_UNKNOWN_KEY",
+          path: "evidence.evidenceRecords[0].unexpected",
+        }),
+        expect.objectContaining({
+          code: "EVIDENCE_UNKNOWN_KEY",
+          path: "evidence.evidenceRecords[0].artifact.unexpected",
+        }),
+        expect.objectContaining({
+          code: "EVIDENCE_UNKNOWN_KEY",
+          path: "evidence.evidenceRecords[0].provenance.unexpected",
+        }),
+      ]),
+    );
+  });
+
   it("rejects unsupported schema versions and non-array collections", () => {
     expect(
       parseEvidenceFile('schemaVersion: "0.1"\nevidence:\n  testRuns: []\n  evidenceRecords: []\n'),

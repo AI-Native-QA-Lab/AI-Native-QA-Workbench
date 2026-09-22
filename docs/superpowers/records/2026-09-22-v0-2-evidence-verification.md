@@ -1,7 +1,7 @@
 # v0.2 Evidence Foundation Verification Record
 
-Date: 2026-09-22  
-Execution: Native execution on the current checkout  
+Date: 2026-09-22
+Execution: Native execution on the current checkout
 Branch: codex/v0.2-evidence-foundation
 
 ## Scope
@@ -22,31 +22,54 @@ The CLI does not assign trusted status or calculate a Quality Score.
 
 ## Verification status
 
-| Area | Status | Evidence |
-| --- | --- | --- |
-| Local format check | PASS | pnpm format:check |
-| Local lint | PASS | pnpm lint |
-| Local typecheck | PASS | pnpm typecheck |
-| Package build | PASS | pnpm build, 11/11 workspace builds |
-| Unit tests | PASS | included in pnpm test, 264 tests total |
-| Contract tests | PASS | included in pnpm test, 29 test files total |
-| Integration tests | PASS | included in pnpm test, including CLI/Evidence paths |
-| Architecture checks | PASS | pnpm check:architecture, 4 files / 5 tests |
-| Documentation checks | PASS | pnpm check:docs |
-| Golden Path browser E2E | PASS | pnpm test:e2e, 1 test |
-| External CI | NOT_RUN | No remote CI run was requested or claimed |
-| GitHub tag/Release | NOT_RUN | No tag or Release was created |
-| Registry publication | NOT_RUN | No package publication was attempted |
-| Production deployment | NOT_RUN | No deployment was attempted |
-| Browser/runtime model evaluation | NOT_RUN | Golden Path used the deterministic local path |
-| Business acceptance | NOT_RUN | Requires explicit product acceptance |
+| Area                             | Status  | Evidence                                                  |
+| -------------------------------- | ------- | --------------------------------------------------------- |
+| Local format check               | PASS    | direct Prettier check                                     |
+| Local lint                       | PASS    | direct ESLint check                                       |
+| Local typecheck                  | PASS    | direct TypeScript check                                   |
+| Package build                    | PASS    | direct TypeScript build, 10 workspace configs             |
+| Workspace build wrapper          | BLOCKED | pnpm shim cannot create its temporary install dir         |
+| Unit tests                       | PASS    | Vitest full run, 270 tests total                          |
+| Contract tests                   | PASS    | included in Vitest full run, 29 test files                |
+| Integration tests                | PASS    | included in Vitest full run, including CLI/Evidence paths |
+| Architecture checks              | PASS    | direct Vitest run, 4 files / 5 tests                      |
+| Documentation checks             | PASS    | direct check-docs run                                     |
+| Golden Path browser E2E          | PASS    | previously verified; review fixes do not touch UI         |
+| External CI                      | NOT_RUN | No remote CI run was requested or claimed                 |
+| GitHub tag/Release               | NOT_RUN | No tag or Release was created                             |
+| Registry publication             | NOT_RUN | No package publication was attempted                      |
+| Production deployment            | NOT_RUN | No deployment was attempted                               |
+| Browser/runtime model evaluation | NOT_RUN | Golden Path used the deterministic local path             |
+| Business acceptance              | NOT_RUN | Requires explicit product acceptance                      |
+
+## Review remediation
+
+The whole-branch review identified and fixed these fail-closed and determinism
+gaps before remote delivery:
+
+- Nested unknown keys are rejected at every Evidence YAML object level with
+  `EVIDENCE_UNKNOWN_KEY`; direct store writes use the same key contract.
+- A symlinked `.ai-qa` parent is rejected before manifest or artifact writes,
+  including commit-time revalidation.
+- Artifact path uniqueness canonicalizes both slash conventions without
+  changing the persisted path value.
+- Malformed runtime schema-version values produce diagnostics instead of
+  throwing during Domain validation.
+- Orphan artifact diagnostics sort directory entries explicitly for stable
+  output.
+
+The regression coverage added for these fixes is included in the 270-test full
+run above. The browser E2E command was not rerun after these non-UI changes
+because the local pnpm shim is currently blocked by its temporary-directory
+permission error; the existing Golden Path PASS remains the applicable UI
+evidence.
 
 ## Targeted regression commands
 
-- pnpm exec vitest run tests/unit/domain/evidence-domain.test.ts tests/contract/evidence-file.contract.test.ts tests/unit/evidence/adapters.test.ts
-  3 files / 34 tests passed.
-- pnpm exec vitest run tests/integration/evidence-store.test.ts tests/integration/evidence-import.test.ts tests/integration/evidence-verify.test.ts tests/integration/cli-evidence.test.ts
-  4 files / 30 tests passed, including the temporary staging symlink rejection.
+- direct Vitest run for the Domain, Evidence File Contract, and adapter suites
+  passed with 3 files / 37 tests.
+- direct Vitest run for the Evidence store, import, verify, and CLI Evidence
+  suites passed with 4 files / 33 tests, including parent symlink rejection.
 - pnpm exec vitest run tests/integration/cli.test.ts tests/integration/quality-store.test.ts tests/integration/runtime-store.test.ts tests/integration/server.test.ts
   4 files / 18 tests passed.
 - git diff --check

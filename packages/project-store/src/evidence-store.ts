@@ -11,7 +11,11 @@ import {
 } from "@ai-native-qa-workbench/domain";
 
 import { parseQualityFile } from "./quality-file.js";
-import { parseEvidenceFile, serializeEvidenceSnapshot } from "./evidence-file.js";
+import {
+  parseEvidenceFile,
+  serializeEvidenceSnapshot,
+  validateEvidenceSnapshotKeys,
+} from "./evidence-file.js";
 import {
   EVIDENCE_ARTIFACT_DIRECTORY_RELATIVE_PATH,
   EVIDENCE_FILE_RELATIVE_PATH,
@@ -43,6 +47,63 @@ function revisionFor(contents: Uint8Array): string {
 
 function isCode(error: unknown, code: string): boolean {
   return error instanceof Error && "code" in error && error.code === code;
+}
+
+async function directoryDiagnostic(
+  directory: string,
+  path: string,
+): Promise<StoreDiagnostic | undefined> {
+  let stat;
+  try {
+    stat = await lstat(directory);
+  } catch (error) {
+    if (isCode(error, "ENOENT")) return undefined;
+    throw error;
+  }
+
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    return diagnostic(
+      "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+      path,
+      "Evidence directory must be a regular directory.",
+    );
+  }
+  return undefined;
+}
+
+async function assertExistingDirectory(directory: string, path: string): Promise<void> {
+  const issue = await directoryDiagnostic(directory, path);
+  if (issue) throw new EvidenceStoreError(issue.code, issue.path, issue.message);
+}
+
+async function ensureDirectory(
+  directory: string,
+  path: string,
+  createIfMissing: boolean,
+): Promise<void> {
+  let stat;
+  try {
+    stat = await lstat(directory);
+  } catch (error) {
+    if (!isCode(error, "ENOENT")) throw error;
+    if (!createIfMissing) {
+      throw new EvidenceStoreError(
+        "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+        path,
+        "Evidence directory does not exist.",
+      );
+    }
+    await mkdir(directory, { recursive: true });
+    stat = await lstat(directory);
+  }
+
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw new EvidenceStoreError(
+      "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+      path,
+      "Evidence directory must be a regular directory.",
+    );
+  }
 }
 
 export class EvidenceStoreError extends Error {
@@ -105,6 +166,10 @@ async function artifactDiagnostic(
 
   const artifactRoot = artifactRootFor(rootDirectory);
   const artifactPath = artifactPathFor(rootDirectory, relativePath);
+  const projectDataRoot = join(resolve(rootDirectory), ".ai-qa");
+  const parentIssue = await directoryDiagnostic(projectDataRoot, ".ai-qa");
+  if (parentIssue) return parentIssue;
+
   let artifactRootStat;
   try {
     artifactRootStat = await lstat(artifactRoot);
@@ -265,6 +330,10 @@ async function scanOrphans(
   referencedPaths: ReadonlySet<string>,
 ): Promise<StoreDiagnostic[]> {
   const artifactRoot = artifactRootFor(rootDirectory);
+  const projectDataRoot = join(resolve(rootDirectory), ".ai-qa");
+  const parentIssue = await directoryDiagnostic(projectDataRoot, ".ai-qa");
+  if (parentIssue) return [parentIssue];
+
   let rootStat;
   try {
     rootStat = await lstat(artifactRoot);
@@ -285,7 +354,9 @@ async function scanOrphans(
 
   const diagnostics: StoreDiagnostic[] = [];
   const visit = async (directory: string): Promise<void> => {
-    const entries = await readdir(directory, { withFileTypes: true });
+    const entries = (await readdir(directory, { withFileTypes: true })).sort((left, right) =>
+      left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+    );
     for (const entry of entries) {
       if (entry.name === ".tmp" && entry.isDirectory()) continue;
       const entryPath = join(directory, entry.name);
@@ -381,6 +452,15 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
     expectedRevision: string | null,
   ): Promise<EvidenceWriteResult> {
     const evidencePath = evidencePathFor(rootDirectory);
+    const keyDiagnostics = validateEvidenceSnapshotKeys(snapshot);
+    if (keyDiagnostics.length > 0) {
+      return {
+        written: false,
+        evidencePath,
+        diagnostics: keyDiagnostics,
+      };
+    }
+
     const validation = validateEvidenceSnapshot(snapshot);
     if (!validation.valid) {
       return {
@@ -392,7 +472,7 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
 
     const contents = serializeEvidenceSnapshot(snapshot);
     const evidenceDirectory = join(resolve(rootDirectory), ".ai-qa");
-    await mkdir(evidenceDirectory, { recursive: true });
+    await ensureDirectory(evidenceDirectory, ".ai-qa", true);
 
     const current = await currentRevision(evidencePath);
     if (current !== expectedRevision) {
@@ -453,6 +533,9 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
 
     const artifactRoot = artifactRootFor(rootDirectory);
     const temporaryRoot = join(artifactRoot, ".tmp");
+    const projectDataRoot = join(resolve(rootDirectory), ".ai-qa");
+    await assertExistingDirectory(projectDataRoot, ".ai-qa");
+
     let artifactRootStat;
     try {
       artifactRootStat = await lstat(artifactRoot);
@@ -500,6 +583,11 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
   }
 
   async commitArtifact(stage: StagedEvidenceArtifact): Promise<void> {
+    const temporaryRoot = dirname(stage.temporaryPath);
+    const artifactRoot = dirname(temporaryRoot);
+    const projectDataRoot = dirname(artifactRoot);
+    await ensureDirectory(projectDataRoot, ".ai-qa", false);
+    await ensureDirectory(artifactRoot, EVIDENCE_ARTIFACT_DIRECTORY_RELATIVE_PATH, false);
     await mkdir(dirname(stage.finalPath), { recursive: true });
     let committed = false;
     try {

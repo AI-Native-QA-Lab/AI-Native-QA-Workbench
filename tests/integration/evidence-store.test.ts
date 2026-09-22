@@ -316,4 +316,21 @@ describe("FileEvidenceStore manifest boundary", () => {
     const files = await readdir(join(directory, ".ai-qa"));
     expect(files.some((file) => file.endsWith(".tmp"))).toBe(false);
   });
+
+  it("rejects manifest writes through a symlinked .ai-qa parent", async () => {
+    const directory = await createTemporaryDirectory();
+    await initializeProject(directory);
+    const outsideRoot = join(directory, "outside-project-root");
+    const projectDataRoot = join(directory, ".ai-qa");
+    await mkdir(outsideRoot, { recursive: true });
+    await rm(projectDataRoot, { recursive: true, force: true });
+    await symlink(outsideRoot, projectDataRoot);
+
+    await expect(
+      new FileEvidenceStore().writeEvidence(directory, evidenceSnapshot(), null),
+    ).rejects.toMatchObject({
+      code: "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+    });
+    await expect(readdir(outsideRoot)).resolves.toEqual([]);
+  });
 });

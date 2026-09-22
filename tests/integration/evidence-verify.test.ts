@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -140,6 +140,21 @@ describe("EvidenceVerifyService and FileEvidenceStore integrity boundary", () =>
     );
   });
 
+  it("reports orphan artifacts in stable path order", async () => {
+    const { directory, reportPath } = await createProject();
+    await importReport(directory, reportPath);
+    const evidenceRoot = join(directory, EVIDENCE_ARTIFACT_DIRECTORY_RELATIVE_PATH);
+    await writeFile(join(evidenceRoot, "zeta.bin"), "zeta", "utf8");
+    await writeFile(join(evidenceRoot, "alpha.bin"), "alpha", "utf8");
+
+    const result = await new FileEvidenceStore().verifyEvidence(directory);
+    const orphanPaths = result.diagnostics
+      .filter(({ code }) => code === "EVIDENCE_ARTIFACT_ORPHAN")
+      .map(({ path }) => path);
+
+    expect(orphanPaths).toEqual([...orphanPaths].sort());
+  });
+
   it("rejects a manifest artifact symlink without following it", async () => {
     const { directory, reportPath } = await createProject();
     await importReport(directory, reportPath);
@@ -219,5 +234,21 @@ describe("EvidenceVerifyService and FileEvidenceStore integrity boundary", () =>
     await expect(readFile(join(outsideRoot, "unexpected.tmp"))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
+
+  it("rejects a symlinked .ai-qa parent before staging outside the project", async () => {
+    const { directory } = await createProject();
+    const outsideRoot = join(directory, "outside-project-root");
+    const projectDataRoot = join(directory, ".ai-qa");
+    await mkdir(outsideRoot, { recursive: true });
+    await rm(projectDataRoot, { recursive: true, force: true });
+    await symlink(outsideRoot, projectDataRoot);
+
+    await expect(
+      new FileEvidenceStore().stageArtifact(directory, new TextEncoder().encode("unsafe")),
+    ).rejects.toMatchObject({
+      code: "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+    });
+    await expect(readdir(outsideRoot)).resolves.toEqual([]);
   });
 });

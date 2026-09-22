@@ -143,7 +143,7 @@ The English contract is canonical and must document the model, file shape, statu
 
 ### Steps
 
-- [ ] Write the two contract files and ADR-005 before changing TypeScript. Keep the YAML example exactly as:
+- [x] Write the two contract files and ADR-005 before changing TypeScript. Keep the YAML example exactly as:
 
 ```yaml
 schemaVersion: "0.2"
@@ -152,7 +152,7 @@ evidence:
   evidenceRecords: []
 ```
 
-- [ ] Add the failing Domain tests for a valid empty snapshot, Unicode result names, all five status derivation branches, invalid duration/time/ID/checksum/path, duplicate IDs, broken TestRun references, provenance format mismatch, and runtime input null/array/scalar. The test must assert ordered diagnostic codes rather than only valid === false.
+- [x] Add the failing Domain tests for a valid empty snapshot, Unicode result names, all five status derivation branches, invalid duration/time/ID/checksum/path, duplicate IDs, broken TestRun references, provenance format mismatch, and runtime input null/array/scalar. The test must assert ordered diagnostic codes rather than only valid === false.
 
 ```ts
 it("derives incomplete instead of passed for empty or unknown results", () => {
@@ -167,9 +167,9 @@ it("returns machine diagnostics for malformed runtime input", () => {
 });
 ```
 
-- [ ] Run pnpm test -- tests/unit/domain/evidence-domain.test.ts; confirm RED because the new exports and diagnostic behavior do not yet exist.
+- [x] Run pnpm test -- tests/unit/domain/evidence-domain.test.ts; confirm RED because the new exports and diagnostic behavior do not yet exist.
 
-- [ ] Implement the types, fixed status precedence, RFC3339-with-timezone validation, UTC normalization at the application boundary, kebab-case IDs, lower-case 64-character SHA-256 validation, safe relative path validation, snapshot-local uniqueness/reference checks, and TestRun.status equality with deriveTestRunStatus(results) in packages/domain/src/evidence-domain.ts. Accept unknown at the validator boundary and never throw for malformed runtime data.
+- [x] Implement the types, fixed status precedence, RFC3339-with-timezone validation, UTC normalization at the application boundary, kebab-case IDs, lower-case 64-character SHA-256 validation, safe relative path validation, snapshot-local uniqueness/reference checks, and TestRun.status equality with deriveTestRunStatus(results) in packages/domain/src/evidence-domain.ts. Accept unknown at the validator boundary and never throw for malformed runtime data.
 
 ```ts
 export function deriveTestRunStatus(results: readonly TestResult[]): TestRunStatus {
@@ -183,13 +183,13 @@ export function deriveTestRunStatus(results: readonly TestResult[]): TestRunStat
 }
 ```
 
-- [ ] Export the Domain module and add the Evidence diagnostic code union without importing any infrastructure module.
+- [x] Export the Domain module and add the Evidence diagnostic code union without importing any infrastructure module.
 
-- [ ] Run pnpm test -- tests/unit/domain/evidence-domain.test.ts tests/unit/domain/quality-domain.test.ts tests/unit/domain/quality-snapshot.test.ts; expect all targeted Domain tests to pass.
+- [x] Run pnpm test -- tests/unit/domain/evidence-domain.test.ts tests/unit/domain/quality-domain.test.ts tests/unit/domain/quality-snapshot.test.ts; expect all targeted Domain tests to pass.
 
-- [ ] Run pnpm typecheck and pnpm test -- tests/architecture/domain-boundary.test.ts tests/architecture/mvp-boundaries.test.ts; expect no forbidden Domain import or token.
+- [x] Run pnpm typecheck and pnpm test -- tests/architecture/domain-boundary.test.ts tests/architecture/mvp-boundaries.test.ts; expect no forbidden Domain import or token.
 
-- [ ] Run pnpm format:check; then commit the exact files with feat: add evidence domain contract.
+- [x] Run pnpm format:check; then commit the exact files with feat: add evidence domain contract.
 
 ## Task 2：实现 Evidence File Contract 和 manifest Project Store
 
@@ -249,9 +249,9 @@ FileEvidenceStore must implement EvidenceStore. readEvidence must return a valid
 
 ### Steps
 
-- [ ] Write contract RED tests for the exact YAML shape, stable field order, final newline, unknown top-level/nested keys, bad YAML, unsupported schema, scalar/non-array collections, missing-file empty snapshot, duplicate IDs, broken TestRun references, and parse/serialize round-trip.
+- [x] Write contract RED tests for the exact YAML shape, stable field order, final newline, unknown top-level/nested keys, bad YAML, unsupported schema, scalar/non-array collections, missing-file empty snapshot, duplicate IDs, broken TestRun references, and parse/serialize round-trip.
 
-- [ ] Write integration RED tests for quality TestCase cross-reference success/failure, missing referenced artifact, absolute/traversal/NUL/symlink path rejection, manifest revision calculation, expectedRevision === null creation, stale revision conflict, and atomic manifest write without a leftover temporary file. Test final-path symlink replacement in Task 4 after artifact stage/commit exists.
+- [x] Write integration RED tests for quality TestCase cross-reference success/failure, missing referenced artifact, absolute/traversal/NUL/symlink path rejection, manifest revision calculation, expectedRevision === null creation, stale revision conflict, and atomic manifest write without a leftover temporary file. Test final-path symlink replacement in Task 4 after artifact stage/commit exists.
 
 ```ts
 it("treats an absent evidence manifest as a valid empty snapshot", async () => {
@@ -266,19 +266,19 @@ it("treats an absent evidence manifest as a valid empty snapshot", async () => {
 });
 ```
 
-- [ ] Run pnpm test -- tests/contract/evidence-file.contract.test.ts tests/integration/evidence-store.test.ts; confirm RED because the new parser/store exports do not yet exist.
+- [x] Run pnpm test -- tests/contract/evidence-file.contract.test.ts tests/integration/evidence-store.test.ts; confirm RED because the new parser/store exports do not yet exist.
 
-- [ ] Implement a strict Zod envelope for schemaVersion and evidence, map unknown keys to EVIDENCE_UNKNOWN_KEY, map YAML errors to EVIDENCE_FILE_MALFORMED, map the Domain result under evidence.*, and serialize with fixed schemaVersion, evidence.testRuns, then evidence.evidenceRecords order and a final newline.
+- [x] Implement a strict Zod envelope for schemaVersion and evidence, map unknown keys to EVIDENCE_UNKNOWN_KEY, map YAML errors to EVIDENCE_FILE_MALFORMED, map the Domain result under evidence.*, and serialize with fixed schemaVersion, evidence.testRuns, then evidence.evidenceRecords order and a final newline.
 
-- [ ] Implement FileEvidenceStore.readEvidence, validateEvidence, and writeEvidence using the existing project-store revision convention. Do not modify FileProjectStore.initProject; v0.1 initialization must continue creating only project.yaml and quality.yaml.
+- [x] Implement FileEvidenceStore.readEvidence, validateEvidence, and writeEvidence using the existing project-store revision convention. Do not modify FileProjectStore.initProject; v0.1 initialization must continue creating only project.yaml and quality.yaml.
 
-- [ ] Implement path containment with resolve(root, ".ai-qa/evidence", relativePath), reject any path whose normalized segments contain empty, dot, or dotdot, and compare real/lstat paths before opening a referenced file. Do not accept a symlink as a manifest artifact.
+- [x] Implement path containment with resolve(root, ".ai-qa/evidence", relativePath), reject any path whose normalized segments contain empty, dot, or dotdot, and compare real/lstat paths before opening a referenced file. Do not accept a symlink as a manifest artifact.
 
-- [ ] Run the two targeted test files; expect GREEN, including a second read after write that returns the same revision and snapshot.
+- [x] Run the two targeted test files; expect GREEN, including a second read after write that returns the same revision and snapshot.
 
-- [ ] Run pnpm test -- tests/integration/quality-store.test.ts tests/contract/quality-file.contract.test.ts tests/integration/evidence-store.test.ts; expect existing v0.1 quality behavior and new Evidence behavior to pass together.
+- [x] Run pnpm test -- tests/integration/quality-store.test.ts tests/contract/quality-file.contract.test.ts tests/integration/evidence-store.test.ts; expect existing v0.1 quality behavior and new Evidence behavior to pass together.
 
-- [ ] Run pnpm typecheck and pnpm format:check; then commit the exact files with feat: add evidence file contract and store.
+- [x] Run pnpm typecheck and pnpm format:check; then commit the exact files with feat: add evidence file contract and store.
 
 ## Task 3：实现三种纯 Evidence Adapter
 
@@ -356,9 +356,9 @@ All adapters preserve Unicode names and return the original input bytes in artif
 
 ### Steps
 
-- [ ] Add the package manifest, TypeScript configs, workspace lock entry, and an architecture-neutral adapter test file without parser implementation.
+- [x] Add the package manifest, TypeScript configs, workspace lock entry, and an architecture-neutral adapter test file without parser implementation.
 
-- [ ] Write RED tests for the minimum passed/failed/skipped/error case of each format, empty suite, Unicode and duration conversion, malformed JSON/XML, missing core fields, wrong explicit format, oversize input, and JUnit external entity rejection.
+- [x] Write RED tests for the minimum passed/failed/skipped/error case of each format, empty suite, Unicode and duration conversion, malformed JSON/XML, missing core fields, wrong explicit format, oversize input, and JUnit external entity rejection.
 
 ```ts
 it("does not guess a format from a JSON file", () => {
@@ -373,21 +373,21 @@ it("does not guess a format from a JSON file", () => {
 });
 ```
 
-- [ ] Run pnpm test -- tests/unit/evidence/adapters.test.ts; confirm RED because the package exports and adapters do not yet exist.
+- [x] Run pnpm test -- tests/unit/evidence/adapters.test.ts; confirm RED because the package exports and adapters do not yet exist.
 
-- [ ] Implement contracts.ts, errors.ts, and the explicit format alias function. normalizeEvidenceFormat("playwright") must return "playwright-json", normalizeEvidenceFormat("pytest") must return "pytest-json", and every other unsupported value must return undefined.
+- [x] Implement contracts.ts, errors.ts, and the explicit format alias function. normalizeEvidenceFormat("playwright") must return "playwright-json", normalizeEvidenceFormat("pytest") must return "pytest-json", and every other unsupported value must return undefined.
 
-- [ ] Implement the JUnit adapter with saxes, rejecting doctype and entity-related parser events before reading any test result. Do not concatenate arbitrary XML into a DOM or enable external entity resolution.
+- [x] Implement the JUnit adapter with saxes, rejecting doctype and entity-related parser events before reading any test result. Do not concatenate arbitrary XML into a DOM or enable external entity resolution.
 
-- [ ] Implement the Playwright and Pytest JSON adapters with JSON.parse, runtime object/array guards, explicit status mappings, and deterministic traversal order. Do not use source filenames to infer format.
+- [x] Implement the Playwright and Pytest JSON adapters with JSON.parse, runtime object/array guards, explicit status mappings, and deterministic traversal order. Do not use source filenames to infer format.
 
-- [ ] Enforce input.byteLength <= MAX_EVIDENCE_IMPORT_BYTES before decoding or parsing, and run Domain-level validateEvidenceSnapshot on the single generated TestRun before returning.
+- [x] Enforce input.byteLength <= MAX_EVIDENCE_IMPORT_BYTES before decoding or parsing, and run Domain-level validateEvidenceSnapshot on the single generated TestRun before returning.
 
-- [ ] Run the targeted adapter tests; expect GREEN and assert that every returned TestRun uses the context run ID and derived status.
+- [x] Run the targeted adapter tests; expect GREEN and assert that every returned TestRun uses the context run ID and derived status.
 
-- [ ] Run pnpm --filter @ai-native-qa-workbench/evidence typecheck and pnpm --filter @ai-native-qa-workbench/evidence build; expect both to pass without filesystem/provider imports.
+- [x] Run pnpm --filter @ai-native-qa-workbench/evidence typecheck and pnpm --filter @ai-native-qa-workbench/evidence build; expect both to pass without filesystem/provider imports.
 
-- [ ] Run pnpm format:check; then commit the exact files with feat: add evidence import adapters.
+- [x] Run pnpm format:check; then commit the exact files with feat: add evidence import adapters.
 
 ## Task 4：实现 artifact integrity、Import/Verify application service
 
@@ -480,9 +480,9 @@ The project-store diagnostic union also carries adapter/report boundary failures
 
 ### Steps
 
-- [ ] Write RED integration tests using real temporary project roots for: successful import, default run ID, explicit run ID, Unicode report names, UTC-normalized importedAt, artifact bytes/metadata, unverified provenance, TestCase reference success/failure, repeated idempotent import, same-run conflict, malformed report no-write, oversize no-write, stale revision conflict, metadata failure preserving the old manifest, and cleanup of temporary files.
+- [x] Write RED integration tests using real temporary project roots for: successful import, default run ID, explicit run ID, Unicode report names, UTC-normalized importedAt, artifact bytes/metadata, unverified provenance, TestCase reference success/failure, repeated idempotent import, same-run conflict, malformed report no-write, oversize no-write, stale revision conflict, metadata failure preserving the old manifest, and cleanup of temporary files.
 
-- [ ] Write RED verify tests for missing artifact, size mismatch, checksum mismatch, orphan artifact, path escape, manifest symlink reference, final-path symlink replacement, valid empty Evidence, and trust remaining unchanged after verification.
+- [x] Write RED verify tests for missing artifact, size mismatch, checksum mismatch, orphan artifact, path escape, manifest symlink reference, final-path symlink replacement, valid empty Evidence, and trust remaining unchanged after verification.
 
 ```ts
 it("returns idempotent success without changing importedAt", async () => {
@@ -518,21 +518,21 @@ it("returns idempotent success without changing importedAt", async () => {
 });
 ```
 
-- [ ] Run pnpm test -- tests/integration/evidence-import.test.ts tests/integration/evidence-verify.test.ts; confirm RED before adding artifact/application implementation.
+- [x] Run pnpm test -- tests/integration/evidence-import.test.ts tests/integration/evidence-verify.test.ts; confirm RED before adding artifact/application implementation.
 
-- [ ] Extend the store with staged artifact and verification methods. Use byte-based createHash("sha256").update(bytes).digest("hex"), sizeBytes: bytes.byteLength, and a generated path that never contains the user-supplied report filename. Keep temporary files below .ai-qa/evidence/.tmp/ and exclude that directory from orphan scans.
+- [x] Extend the store with staged artifact and verification methods. Use byte-based createHash("sha256").update(bytes).digest("hex"), sizeBytes: bytes.byteLength, and a generated path that never contains the user-supplied report filename. Keep temporary files below .ai-qa/evidence/.tmp/ and exclude that directory from orphan scans.
 
-- [ ] Implement the import sequence in this order: validate project and quality; validate current Evidence; read report bytes; reject over-limit input before adapter parse; compute raw checksum for default run ID; normalize input.now or the injected clock result with new Date(value).toISOString(); call the explicit adapter; stage and recompute artifact metadata; build Evidence with kind: "test-result", trust: "unverified", and adapter format; validate merged snapshot and cross-file TestCase references; commit artifact; write manifest with the captured revision; reload and validate.
+- [x] Implement the import sequence in this order: validate project and quality; validate current Evidence; read report bytes; reject over-limit input before adapter parse; compute raw checksum for default run ID; normalize input.now or the injected clock result with new Date(value).toISOString(); call the explicit adapter; stage and recompute artifact metadata; build Evidence with kind: "test-result", trust: "unverified", and adapter format; validate merged snapshot and cross-file TestCase references; commit artifact; write manifest with the captured revision; reload and validate.
 
-- [ ] On every unsuccessful branch before artifact commit, call discardArtifact. On stale revision or manifest failure after artifact commit, leave the old manifest untouched and return the diagnostic without deleting the final artifact; the subsequent verify command must report it as orphan.
+- [x] On every unsuccessful branch before artifact commit, call discardArtifact. On stale revision or manifest failure after artifact commit, leave the old manifest untouched and return the diagnostic without deleting the final artifact; the subsequent verify command must report it as orphan.
 
-- [ ] Implement EvidenceVerifier as a thin application wrapper over EvidenceArtifactStore.verifyEvidence; it must not mutate files or transform integrity diagnostics into quality scores.
+- [x] Implement EvidenceVerifier as a thin application wrapper over EvidenceArtifactStore.verifyEvidence; it must not mutate files or transform integrity diagnostics into quality scores.
 
-- [ ] Run the two targeted integration files; expect GREEN, including no old manifest mutation for parser, conflict, and stale-revision failures.
+- [x] Run the two targeted integration files; expect GREEN, including no old manifest mutation for parser, conflict, and stale-revision failures.
 
-- [ ] Run pnpm --filter @ai-native-qa-workbench/application typecheck, pnpm --filter @ai-native-qa-workbench/project-store typecheck, and pnpm build; expect all workspace dependencies to build.
+- [x] Run pnpm --filter @ai-native-qa-workbench/application typecheck, pnpm --filter @ai-native-qa-workbench/project-store typecheck, and pnpm build; expect all workspace dependencies to build.
 
-- [ ] Run pnpm format:check; then commit the exact files with feat: add evidence import and integrity services.
+- [x] Run pnpm format:check; then commit the exact files with feat: add evidence import and integrity services.
 
 ## Task 5：接入 CLI，同时保持 v0.1 命令兼容
 
