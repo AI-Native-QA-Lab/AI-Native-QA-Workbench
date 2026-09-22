@@ -29,7 +29,7 @@
 
 ## Review Focus
 
-- Domain 是否只做结构校验，且不会把缺少结果误判为 passed。
+- Domain 是否只做结构校验，且不会把缺少结果误判为 passed；持久化的 TestRun.status 是否始终等于结果推导值。
 - TestRun 状态优先级是否固定为 error > failed > skipped > incomplete > passed，其中 unknown 和空结果为 incomplete。
 - Evidence File Contract 是否严格拒绝未知 key、坏 schema、错误类型、重复 ID 和坏引用，并保持稳定序列化。
 - testCaseId 是否只做跨文件存在性校验，不做名称相似度推断。
@@ -37,6 +37,7 @@
 - 相同 run ID 的相同 normalized content 是否幂等；相同 run ID 的不同 checksum 或不同 normalized TestRun 是否冲突且无部分写入。
 - manifest revision 是否在写入前后检查；stale revision 是否返回 EVIDENCE_REVISION_CONFLICT，不覆盖其他修改。
 - artifact 移动后 manifest 提交失败留下的未引用文件是否只被 verify 报告为 orphan，不被自动删除。
+- verify 是否先执行 project/quality/evidence metadata 校验，再执行真实 artifact checksum/orphan 扫描。
 - XML 外部实体、超大输入、绝对路径、NUL、路径穿越和 symlink 是否全部有回归测试。
 - qaw validate 是否只做 metadata/cross-file 校验，qaw evidence verify 和 qaw doctor 是否才做真实 checksum/orphan 扫描。
 - 是否没有把 imported/unverified Evidence 描述成生产验收或业务质量结论。
@@ -168,7 +169,7 @@ it("returns machine diagnostics for malformed runtime input", () => {
 
 - [ ] Run pnpm test -- tests/unit/domain/evidence-domain.test.ts; confirm RED because the new exports and diagnostic behavior do not yet exist.
 
-- [ ] Implement the types, fixed status precedence, RFC3339-with-timezone validation, kebab-case IDs, lower-case 64-character SHA-256 validation, safe relative path validation, and snapshot-local uniqueness/reference checks in packages/domain/src/evidence-domain.ts. Accept unknown at the validator boundary and never throw for malformed runtime data.
+- [ ] Implement the types, fixed status precedence, RFC3339-with-timezone validation, UTC normalization at the application boundary, kebab-case IDs, lower-case 64-character SHA-256 validation, safe relative path validation, snapshot-local uniqueness/reference checks, and TestRun.status equality with deriveTestRunStatus(results) in packages/domain/src/evidence-domain.ts. Accept unknown at the validator boundary and never throw for malformed runtime data.
 
 ```ts
 export function deriveTestRunStatus(results: readonly TestResult[]): TestRunStatus {
@@ -250,7 +251,7 @@ FileEvidenceStore must implement EvidenceStore. readEvidence must return a valid
 
 - [ ] Write contract RED tests for the exact YAML shape, stable field order, final newline, unknown top-level/nested keys, bad YAML, unsupported schema, scalar/non-array collections, missing-file empty snapshot, duplicate IDs, broken TestRun references, and parse/serialize round-trip.
 
-- [ ] Write integration RED tests for quality TestCase cross-reference success/failure, missing referenced artifact, absolute/traversal/NUL/symlink path rejection, manifest revision calculation, expectedRevision === null creation, stale revision conflict, and atomic manifest write without a leftover temporary file.
+- [ ] Write integration RED tests for quality TestCase cross-reference success/failure, missing referenced artifact, absolute/traversal/NUL/symlink path rejection, manifest revision calculation, expectedRevision === null creation, stale revision conflict, final-path symlink replacement rejection, and atomic manifest write without a leftover temporary file.
 
 ```ts
 it("treats an absent evidence manifest as a valid empty snapshot", async () => {
@@ -428,7 +429,7 @@ export interface EvidenceArtifactStore {
 }
 ```
 
-FileEvidenceStore must implement both EvidenceStore and EvidenceArtifactStore. stageArtifact computes SHA-256 and byte length from the provided bytes, creates artifact-<fullSha256>.bin under the Evidence artifact root, writes a random temporary file under .ai-qa/evidence/.tmp/, and returns a manifest reference with relativePath under .ai-qa/evidence/. commitArtifact atomically renames the temporary file into the generated path and treats an existing same-checksum final file as idempotent. discardArtifact only removes a staged temporary file. verifyEvidence loads the manifest, checks all referenced files’ lstat/size/SHA-256, recursively scans non-temporary Evidence files for unreferenced orphans, and never changes the manifest or trust.
+FileEvidenceStore must implement both EvidenceStore and EvidenceArtifactStore. stageArtifact computes SHA-256 and byte length from the provided bytes, creates artifact-<fullSha256>.bin under the Evidence artifact root, writes a random temporary file under .ai-qa/evidence/.tmp/, and returns a manifest reference with relativePath under .ai-qa/evidence/. commitArtifact atomically renames the temporary file into the generated path and treats an existing same-checksum regular file as idempotent, but rejects an existing symlink target with EVIDENCE_ARTIFACT_PATH_UNSAFE. discardArtifact only removes a staged temporary file. verifyEvidence loads the manifest, checks all referenced files’ lstat/size/SHA-256, reports symlink entries without following them, recursively scans non-temporary Evidence files for unreferenced orphans, and never changes the manifest or trust.
 
 Add these exact application interfaces:
 
@@ -477,7 +478,7 @@ EvidenceImportService derives a missing run ID as run-<format>-<rawArtifactSha25
 
 ### Steps
 
-- [ ] Write RED integration tests using real temporary project roots for: successful import, default run ID, explicit run ID, Unicode report names, artifact bytes/metadata, unverified provenance, TestCase reference success/failure, repeated idempotent import, same-run conflict, malformed report no-write, oversize no-write, stale revision conflict, metadata failure preserving the old manifest, and cleanup of temporary files.
+- [ ] Write RED integration tests using real temporary project roots for: successful import, default run ID, explicit run ID, Unicode report names, UTC-normalized importedAt, artifact bytes/metadata, unverified provenance, TestCase reference success/failure, repeated idempotent import, same-run conflict, malformed report no-write, oversize no-write, stale revision conflict, metadata failure preserving the old manifest, and cleanup of temporary files.
 
 - [ ] Write RED verify tests for missing artifact, size mismatch, checksum mismatch, orphan artifact, path escape, symlink reference, valid empty Evidence, and trust remaining unchanged after verification.
 
@@ -519,7 +520,7 @@ it("returns idempotent success without changing importedAt", async () => {
 
 - [ ] Extend the store with staged artifact and verification methods. Use byte-based createHash("sha256").update(bytes).digest("hex"), sizeBytes: bytes.byteLength, and a generated path that never contains the user-supplied report filename. Keep temporary files below .ai-qa/evidence/.tmp/ and exclude that directory from orphan scans.
 
-- [ ] Implement the import sequence in this order: validate project and quality; validate current Evidence; read report bytes; reject over-limit input before adapter parse; compute raw checksum for default run ID; call the explicit adapter; stage and recompute artifact metadata; build Evidence with kind: "test-result", trust: "unverified", and adapter format; validate merged snapshot and cross-file TestCase references; commit artifact; write manifest with the captured revision; reload and validate.
+- [ ] Implement the import sequence in this order: validate project and quality; validate current Evidence; read report bytes; reject over-limit input before adapter parse; compute raw checksum for default run ID; normalize input.now or the injected clock result with new Date(value).toISOString(); call the explicit adapter; stage and recompute artifact metadata; build Evidence with kind: "test-result", trust: "unverified", and adapter format; validate merged snapshot and cross-file TestCase references; commit artifact; write manifest with the captured revision; reload and validate.
 
 - [ ] On every unsuccessful branch before artifact commit, call discardArtifact. On stale revision or manifest failure after artifact commit, leave the old manifest untouched and return the diagnostic without deleting the final artifact; the subsequent verify command must report it as orphan.
 
@@ -577,7 +578,7 @@ playwright maps to playwright-json, pytest maps to pytest-json, and only canonic
 
 - [ ] Instantiate FileEvidenceStore and the application services only when Evidence dependencies are not supplied by tests. Keep ProjectStore as the existing dependency for project/quality validation.
 
-- [ ] Extend qaw validate to call validateEvidence after project and quality validation, and extend qaw doctor to call verifyEvidence only after all metadata validation passes. Keep qaw open and qaw analyze output unchanged.
+- [ ] Extend qaw validate to call validateEvidence after project and quality validation. Make qaw evidence verify and qaw doctor call project validation, quality validation, evidence metadata validation, and then verifyEvidence; do not run checksum/orphan verification when metadata validation already failed. Keep qaw open and qaw analyze output unchanged.
 
 - [ ] Print stable machine diagnostics to stderr using the existing writeDiagnostics shape. On import success print the canonical run/evidence IDs; on idempotent success state that the existing record was reused; do not print a Quality Score.
 
