@@ -1,0 +1,9 @@
+{
+  "tests": [
+    { "nodeid": "test_passed", "outcome": "passed", "duration": 0.125 },
+    { "nodeid": "test_failed", "outcome": "failed", "duration": 0 },
+    { "nodeid": "test_skipped", "outcome": "skipped" },
+    { "nodeid": "test_error", "outcome": "error", "duration": 0.25 },
+    { "nodeid": "test_unknown" }
+  ]
+}

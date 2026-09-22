@@ -284,6 +284,15 @@ importers:
 
   packages/domain: {}
 
+  packages/evidence:
+    dependencies:
+      '@ai-native-qa-workbench/domain':
+        specifier: workspace:*
+        version: link:../domain
+      saxes:
+        specifier: ^6.0.0
+        version: 6.0.0
+
   packages/model-providers:
     dependencies:
       '@ai-native-qa-workbench/domain':

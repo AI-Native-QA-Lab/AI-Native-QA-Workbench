@@ -1,0 +1,58 @@
+{
+  "suites": [
+    {
+      "title": "套件标题",
+      "specs": [
+        {
+          "title": "规格标题",
+          "tests": [
+            {
+              "title": "通过测试",
+              "results": [
+                { "status": "passed", "duration": 4 },
+                { "status": "passed", "duration": 6 }
+              ]
+            },
+            {
+              "title": "预期失败",
+              "results": [{ "status": "expected", "duration": 10 }]
+            },
+            {
+              "title": "失败测试",
+              "results": [{ "status": "unexpected", "duration": 11 }]
+            },
+            {
+              "title": "跳过测试",
+              "results": [{ "status": "skipped", "duration": 0 }]
+            },
+            {
+              "title": "超时测试",
+              "results": [{ "status": "timedOut", "duration": 12 }]
+            },
+            {
+              "title": "中断测试",
+              "results": [{ "status": "interrupted", "duration": 13 }]
+            },
+            {
+              "title": "无状态测试",
+              "results": [{}]
+            },
+            {
+              "title": "无结果测试",
+              "results": []
+            }
+          ]
+        },
+        {
+          "title": "备用规格",
+          "tests": [
+            {
+              "title": "",
+              "results": [{ "status": "passed", "duration": 1 }]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
