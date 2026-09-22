@@ -251,7 +251,7 @@ FileEvidenceStore must implement EvidenceStore. readEvidence must return a valid
 
 - [ ] Write contract RED tests for the exact YAML shape, stable field order, final newline, unknown top-level/nested keys, bad YAML, unsupported schema, scalar/non-array collections, missing-file empty snapshot, duplicate IDs, broken TestRun references, and parse/serialize round-trip.
 
-- [ ] Write integration RED tests for quality TestCase cross-reference success/failure, missing referenced artifact, absolute/traversal/NUL/symlink path rejection, manifest revision calculation, expectedRevision === null creation, stale revision conflict, final-path symlink replacement rejection, and atomic manifest write without a leftover temporary file.
+- [ ] Write integration RED tests for quality TestCase cross-reference success/failure, missing referenced artifact, absolute/traversal/NUL/symlink path rejection, manifest revision calculation, expectedRevision === null creation, stale revision conflict, and atomic manifest write without a leftover temporary file. Test final-path symlink replacement in Task 4 after artifact stage/commit exists.
 
 ```ts
 it("treats an absent evidence manifest as a valid empty snapshot", async () => {
@@ -480,7 +480,7 @@ EvidenceImportService derives a missing run ID as run-<format>-<rawArtifactSha25
 
 - [ ] Write RED integration tests using real temporary project roots for: successful import, default run ID, explicit run ID, Unicode report names, UTC-normalized importedAt, artifact bytes/metadata, unverified provenance, TestCase reference success/failure, repeated idempotent import, same-run conflict, malformed report no-write, oversize no-write, stale revision conflict, metadata failure preserving the old manifest, and cleanup of temporary files.
 
-- [ ] Write RED verify tests for missing artifact, size mismatch, checksum mismatch, orphan artifact, path escape, symlink reference, valid empty Evidence, and trust remaining unchanged after verification.
+- [ ] Write RED verify tests for missing artifact, size mismatch, checksum mismatch, orphan artifact, path escape, manifest symlink reference, final-path symlink replacement, valid empty Evidence, and trust remaining unchanged after verification.
 
 ```ts
 it("returns idempotent success without changing importedAt", async () => {
