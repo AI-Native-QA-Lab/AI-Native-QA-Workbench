@@ -294,6 +294,7 @@ it("treats an absent evidence manifest as a valid empty snapshot", async () => {
 - Create: packages/evidence/src/pytest-adapter.ts
 - Create: packages/evidence/src/index.ts
 - Modify: tsconfig.json
+- Modify: vitest.config.ts
 - Modify: pnpm-lock.yaml
 - Create: tests/unit/evidence/adapters.test.ts
 - Create: tests/fixtures/evidence/junit-minimal.xml
