@@ -468,7 +468,22 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
         "Evidence artifact directory is not a regular directory.",
       );
     }
-    await mkdir(temporaryRoot, { recursive: true });
+
+    let temporaryRootStat;
+    try {
+      temporaryRootStat = await lstat(temporaryRoot);
+    } catch (error) {
+      if (!isCode(error, "ENOENT")) throw error;
+      await mkdir(temporaryRoot, { recursive: true });
+      temporaryRootStat = await lstat(temporaryRoot);
+    }
+    if (temporaryRootStat.isSymbolicLink() || !temporaryRootStat.isDirectory()) {
+      throw new EvidenceStoreError(
+        "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+        EVIDENCE_ARTIFACT_DIRECTORY_RELATIVE_PATH + "/.tmp",
+        "Evidence temporary directory is not a regular directory.",
+      );
+    }
 
     const reference = artifactReferenceFor(bytes);
     const temporaryPath = join(temporaryRoot, randomUUID() + ".tmp");

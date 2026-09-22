@@ -201,4 +201,23 @@ describe("EvidenceVerifyService and FileEvidenceStore integrity boundary", () =>
     });
     await store.discardArtifact(stage);
   });
+
+  it("rejects a symlinked temporary staging directory", async () => {
+    const { directory } = await createProject();
+    const store = new FileEvidenceStore();
+    const evidenceRoot = join(directory, EVIDENCE_ARTIFACT_DIRECTORY_RELATIVE_PATH);
+    const outsideRoot = join(directory, "outside-tmp");
+    await mkdir(evidenceRoot, { recursive: true });
+    await mkdir(outsideRoot, { recursive: true });
+    await symlink(outsideRoot, join(evidenceRoot, ".tmp"));
+
+    await expect(
+      store.stageArtifact(directory, new TextEncoder().encode("unsafe")),
+    ).rejects.toMatchObject({
+      code: "EVIDENCE_ARTIFACT_PATH_UNSAFE",
+    });
+    await expect(readFile(join(outsideRoot, "unexpected.tmp"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
 });
