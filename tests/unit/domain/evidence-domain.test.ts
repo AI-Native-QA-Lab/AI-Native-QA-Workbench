@@ -196,6 +196,24 @@ describe("validateEvidenceSnapshot", () => {
     );
   });
 
+  it.each(["2026-09-22T24:00:00Z", "2026-02-31T01:00:00Z"])(
+    "rejects non-RFC3339 calendar time %s",
+    (startedAt) => {
+      const snapshot = validSnapshot();
+      snapshot.testRuns[0]!.startedAt = startedAt;
+
+      const result = validateEvidenceSnapshot(snapshot);
+
+      expect(result.valid).toBe(false);
+      expect(result.diagnostics).toContainEqual(
+        expect.objectContaining({
+          code: "EVIDENCE_TEST_RUN_TIME_INVALID",
+          path: "testRuns[0].startedAt",
+        }),
+      );
+    },
+  );
+
   it("rejects duplicate IDs, broken references, and provenance format mismatch", () => {
     const snapshot = validSnapshot();
     snapshot.testRuns.push(structuredClone(snapshot.testRuns[0]!));

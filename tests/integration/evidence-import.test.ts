@@ -16,6 +16,7 @@ import {
 } from "@ai-native-qa-workbench/evidence";
 import {
   QUALITY_SCHEMA_VERSION,
+  type EvidenceSnapshot,
   type QualitySnapshot,
   type TestRun,
 } from "@ai-native-qa-workbench/domain";
@@ -25,6 +26,7 @@ import {
   FileEvidenceStore,
   FileProjectStore,
   type EvidenceArtifactStore,
+  type EvidenceValidationResult,
   type EvidenceStore,
   type StoreDiagnostic,
 } from "@ai-native-qa-workbench/project-store";
@@ -101,6 +103,42 @@ function createImporter(
 function resultWithCode(result: EvidenceImportResult, code: string): void {
   expect(result.imported).toBe(false);
   expect(result.diagnostics).toContainEqual(expect.objectContaining({ code }));
+}
+
+function reverseObjectKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(reverseObjectKeys);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .reverse()
+        .map(([key, nested]) => [key, reverseObjectKeys(nested)]),
+    );
+  }
+  return value;
+}
+
+function reorderedEvidenceResult(result: EvidenceValidationResult): EvidenceValidationResult {
+  if (!result.evidence) return result;
+  return {
+    ...result,
+    evidence: reverseObjectKeys(result.evidence) as EvidenceSnapshot,
+  };
+}
+
+function storeWithReorderedReads(base: FileEvidenceStore): EvidenceStore & EvidenceArtifactStore {
+  return {
+    async readEvidence(rootDirectory) {
+      return reorderedEvidenceResult(await base.readEvidence(rootDirectory));
+    },
+    async validateEvidence(rootDirectory) {
+      return reorderedEvidenceResult(await base.validateEvidence(rootDirectory));
+    },
+    writeEvidence: base.writeEvidence.bind(base),
+    stageArtifact: base.stageArtifact.bind(base),
+    commitArtifact: base.commitArtifact.bind(base),
+    discardArtifact: base.discardArtifact.bind(base),
+    verifyEvidence: base.verifyEvidence.bind(base),
+  };
 }
 
 function testCaseAdapterRegistry(testCaseId: string): EvidenceAdapterRegistry {
@@ -255,6 +293,31 @@ describe("EvidenceImportService", () => {
     expect(after.evidence).toEqual(before.evidence);
   });
 
+  it("treats semantically identical evidence as idempotent after YAML key reordering", async () => {
+    const { directory, reportPath, projectStore, evidenceStore } = await createProject();
+    const importer = createImporter(projectStore, evidenceStore);
+    const first = await importer.import({
+      rootDirectory: directory,
+      reportPath,
+      format: "junit",
+      runId: "run-reordered-yaml",
+      now: "2026-09-22T01:00:00Z",
+    });
+    const second = await createImporter(
+      projectStore,
+      storeWithReorderedReads(evidenceStore),
+    ).import({
+      rootDirectory: directory,
+      reportPath,
+      format: "junit",
+      runId: "run-reordered-yaml",
+      now: "2026-09-22T02:00:00Z",
+    });
+
+    expect(first.imported).toBe(true);
+    expect(second).toMatchObject({ imported: true, idempotent: true });
+  });
+
   it("rejects a same-run import whose checksum or normalized result differs", async () => {
     const { directory, reportPath, projectStore, evidenceStore } = await createProject();
     const importer = createImporter(projectStore, evidenceStore);
@@ -347,6 +410,41 @@ describe("EvidenceImportService", () => {
     expect(
       (await secondDirectory.evidenceStore.readEvidence(secondDirectory.directory)).revision,
     ).toBeNull();
+  });
+
+  it("reports a new TestCase reference at the appended TestRun index", async () => {
+    const { directory, reportPath, projectStore, evidenceStore } = await createProject();
+    await projectStore.writeQuality(directory, qualitySnapshotWithTestCase());
+
+    const success = await createImporter(
+      projectStore,
+      evidenceStore,
+      testCaseAdapterRegistry("test-login-success"),
+    ).import({
+      rootDirectory: directory,
+      reportPath,
+      format: "junit",
+      runId: "run-reference-first",
+    });
+    expect(success.imported).toBe(true);
+
+    const failure = await createImporter(
+      projectStore,
+      evidenceStore,
+      testCaseAdapterRegistry("test-missing"),
+    ).import({
+      rootDirectory: directory,
+      reportPath,
+      format: "junit",
+      runId: "run-reference-second",
+    });
+
+    expect(failure.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "EVIDENCE_REFERENCE_NOT_FOUND",
+        path: "evidence.testRuns[1].results[0].testCaseId",
+      }),
+    );
   });
 
   it("preserves the old manifest on a stale revision conflict and cleans staged temporary files", async () => {

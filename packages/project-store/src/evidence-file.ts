@@ -2,6 +2,7 @@ import { parse, stringify } from "yaml";
 import { z } from "zod";
 
 import {
+  canonicalizeEvidenceValue,
   EVIDENCE_SCHEMA_VERSION,
   validateEvidenceSnapshot,
   type EvidenceSnapshot,
@@ -220,8 +221,8 @@ export function serializeEvidenceSnapshot(snapshot: EvidenceSnapshot): string {
   const serialized = stringify({
     schemaVersion: EVIDENCE_SCHEMA_VERSION,
     evidence: {
-      testRuns: snapshot.testRuns,
-      evidenceRecords: snapshot.evidenceRecords,
+      testRuns: snapshot.testRuns.map((testRun) => canonicalizeEvidenceValue(testRun)),
+      evidenceRecords: snapshot.evidenceRecords.map((record) => canonicalizeEvidenceValue(record)),
     },
   });
 

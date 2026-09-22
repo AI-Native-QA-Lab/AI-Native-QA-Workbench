@@ -49,6 +49,18 @@ function populatedSnapshot(): EvidenceSnapshot {
   };
 }
 
+function reverseObjectKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(reverseObjectKeys);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .reverse()
+        .map(([key, nested]) => [key, reverseObjectKeys(nested)]),
+    );
+  }
+  return value;
+}
+
 describe("Evidence File Contract", () => {
   it("parses the canonical empty evidence file", () => {
     expect(
@@ -80,6 +92,13 @@ describe("Evidence File Contract", () => {
       evidence: snapshot,
       diagnostics: [],
     });
+  });
+
+  it("serializes populated evidence deterministically regardless of nested key order", () => {
+    const snapshot = populatedSnapshot();
+    const reordered = reverseObjectKeys(snapshot) as EvidenceSnapshot;
+
+    expect(serializeEvidenceSnapshot(reordered)).toBe(serializeEvidenceSnapshot(snapshot));
   });
 
   it("rejects malformed YAML and unknown keys", () => {

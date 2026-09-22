@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 
 import {
+  canonicalizeEvidenceValue,
   EVIDENCE_SCHEMA_VERSION,
   validateEvidenceSnapshot,
   type Evidence,
@@ -98,20 +99,23 @@ function mapDomainDiagnostics(
 }
 
 function normalizedImport(testRun: TestRun, evidence: Evidence): string {
-  return JSON.stringify({
-    testRun,
-    evidence: {
-      ...evidence,
-      provenance: {
-        ...evidence.provenance,
-        importedAt: "",
+  return JSON.stringify(
+    canonicalizeEvidenceValue({
+      testRun,
+      evidence: {
+        ...evidence,
+        provenance: {
+          ...evidence.provenance,
+          importedAt: "",
+        },
       },
-    },
-  });
+    }),
+  );
 }
 
 function referenceDiagnostics(
   testRun: TestRun,
+  testRunIndex: number,
   testCaseIds: ReadonlySet<string>,
 ): StoreDiagnostic[] {
   const diagnostics: StoreDiagnostic[] = [];
@@ -120,7 +124,7 @@ function referenceDiagnostics(
       diagnostics.push(
         diagnostic(
           "EVIDENCE_REFERENCE_NOT_FOUND",
-          "evidence.testRuns[0].results[" + resultIndex + "].testCaseId",
+          "evidence.testRuns[" + testRunIndex + "].results[" + resultIndex + "].testCaseId",
           "Referenced TestCase does not exist: " + result.testCaseId,
         ),
       );
@@ -271,7 +275,11 @@ export class EvidenceImportService implements EvidenceImporter {
     }
 
     const testCaseIds = new Set(quality.projectQuality.testCases.map((testCase) => testCase.id));
-    const referenceIssues = referenceDiagnostics(parsed.testRun, testCaseIds);
+    const referenceIssues = referenceDiagnostics(
+      parsed.testRun,
+      current.evidence.testRuns.length,
+      testCaseIds,
+    );
     if (referenceIssues.length > 0) {
       await this.evidenceStore.discardArtifact(staged);
       return failure(referenceIssues);
