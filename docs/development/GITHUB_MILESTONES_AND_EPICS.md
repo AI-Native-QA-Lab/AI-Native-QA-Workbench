@@ -20,6 +20,15 @@
 -   M9 --- v0.9 Specialized Agents
 -   M10 --- v1.0 Stable Workbench
 
+## M2 / v0.2 Evidence Foundation（本地规划边界）
+
+-   状态：已在当前 checkout 实现并完成本地验证；远端 Milestone、Issue、Tag 和
+    Release 均保持 `NOT_CLAIMED`。
+-   范围：Evidence Domain/Contract、YAML manifest、三种离线 Adapter、artifact
+    integrity、Import/Verify Service、CLI evidence 命令和架构/回归 Gate。
+-   非目标：Quality Score、trusted evidence 自动赋值、远端集成、registry publication、
+    生产部署和业务验收。
+
 ## MVP Epics
 
 -   EPIC-001 Repository Bootstrap
@@ -39,6 +48,14 @@
 -   EPIC-015 i18n
 -   EPIC-016 Golden Path
 -   EPIC-017 Documentation & Release
+
+## v0.2 Evidence Epics
+
+-   EPIC-018 Evidence Contract and Domain
+-   EPIC-019 Evidence File Store and Artifact Integrity
+-   EPIC-020 Offline Evidence Adapters
+-   EPIC-021 Evidence Import/Verify Services and CLI
+-   EPIC-022 Evidence Architecture and Verification Gate
 
 每个 Epic 继续拆成可独立 RED/GREEN/REFACTOR 的 GitHub Issue，避免一个
 Issue 同时实现多个 Domain 行为。

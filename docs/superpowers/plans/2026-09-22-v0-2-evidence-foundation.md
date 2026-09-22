@@ -539,15 +539,15 @@ it("returns idempotent success without changing importedAt", async () => {
 ### Files
 
 - Modify: apps/cli/src/cli.ts
-- Modify: apps/cli/src/main.ts
 - Modify: apps/cli/package.json
-- Modify: tsconfig.json
+- Modify: apps/cli/tsconfig.json
+- Modify: apps/cli/tsconfig.build.json
 - Create: tests/integration/cli-evidence.test.ts
 - Modify: tests/integration/cli.test.ts
 
 ### Interfaces consumed and produced
 
-Add workspace dependencies on @ai-native-qa-workbench/evidence and the application/project-store APIs. Extend CliDependencies without changing existing fields:
+Add workspace dependencies on @ai-native-qa-workbench/domain, @ai-native-qa-workbench/evidence, and the application/project-store APIs. Extend CliDependencies without changing existing fields:
 
 ```ts
 export interface CliDependencies {
@@ -572,21 +572,21 @@ playwright maps to playwright-json, pytest maps to pytest-json, and only canonic
 
 ### Steps
 
-- [ ] Write RED CLI tests for usage text, missing subcommand/report/format, unsupported format exit 2, --trusted rejection, successful import output, idempotent output, verify success, verify failure exit 1, validate including Evidence metadata, doctor including checksum verification, and all existing init/validate/doctor/open/analyze tests.
+- [x] Write RED CLI tests for usage text, missing subcommand/report/format, unsupported format exit 2, --trusted rejection, successful import output, idempotent output, verify success, verify failure exit 1, validate including Evidence metadata, doctor including checksum verification, and all existing init/validate/doctor/open/analyze tests.
 
-- [ ] Run pnpm test -- tests/integration/cli-evidence.test.ts tests/integration/cli.test.ts; confirm RED because the nested evidence parser and dependencies do not exist.
+- [x] Run pnpm test -- tests/integration/cli-evidence.test.ts tests/integration/cli.test.ts; confirm RED because the nested evidence parser and dependencies do not exist.
 
-- [ ] Implement a typed CliArgumentError carrying an explicit exit code while leaving v0.1 command branches unchanged. Add evidence import and evidence verify parsing without guessing a report format from extension or content.
+- [x] Implement a typed CliArgumentError carrying an explicit exit code while leaving v0.1 command branches unchanged. Add evidence import and evidence verify parsing without guessing a report format from extension or content.
 
-- [ ] Instantiate FileEvidenceStore and the application services only when Evidence dependencies are not supplied by tests. Keep ProjectStore as the existing dependency for project/quality validation.
+- [x] Instantiate FileEvidenceStore and the application services only when Evidence dependencies are not supplied by tests. Keep ProjectStore as the existing dependency for project/quality validation.
 
-- [ ] Extend qaw validate to call validateEvidence after project and quality validation. Make qaw evidence verify and qaw doctor call project validation, quality validation, evidence metadata validation, and then verifyEvidence; do not run checksum/orphan verification when metadata validation already failed. Keep qaw open and qaw analyze output unchanged.
+- [x] Extend qaw validate to call validateEvidence after project and quality validation. Make qaw evidence verify and qaw doctor call project validation, quality validation, evidence metadata validation, and then verifyEvidence; do not run checksum/orphan verification when metadata validation already failed. Keep qaw open and qaw analyze output unchanged.
 
-- [ ] Print stable machine diagnostics to stderr using the existing writeDiagnostics shape. On import success print the canonical run/evidence IDs; on idempotent success state that the existing record was reused; do not print a Quality Score.
+- [x] Print stable machine diagnostics to stderr using the existing writeDiagnostics shape. On import success print the canonical run/evidence IDs; on idempotent success state that the existing record was reused; do not print a Quality Score.
 
-- [ ] Run pnpm test -- tests/integration/cli-evidence.test.ts tests/integration/cli.test.ts; expect GREEN. Run pnpm test -- tests/e2e/golden-path.spec.ts to verify the existing browser path remains unaffected.
+- [x] Run pnpm test -- tests/integration/cli-evidence.test.ts tests/integration/cli.test.ts; expect GREEN. Run pnpm test -- tests/e2e/golden-path.spec.ts to verify the existing browser path remains unaffected.
 
-- [ ] Run pnpm typecheck, pnpm --filter @ai-native-qa-workbench/cli build, and pnpm format:check; then commit the exact files with feat: add evidence cli commands.
+- [x] Run pnpm typecheck, pnpm --filter @ai-native-qa-workbench/cli build, and pnpm format:check; then commit the exact files with feat: add evidence cli commands.
 
 ## Task 6：架构检查、回归 Gate、双语文档和实现状态
 
@@ -608,21 +608,21 @@ The verification record must keep separate statuses for local static checks, pac
 
 ### Steps
 
-- [ ] Add the architecture boundary test after the Domain and adapter implementations exist; run pnpm test -- tests/architecture/evidence-boundary.test.ts tests/architecture/domain-boundary.test.ts and require a green result before the full gate.
+- [x] Add the architecture boundary test after the Domain and adapter implementations exist; run pnpm test -- tests/architecture/evidence-boundary.test.ts tests/architecture/domain-boundary.test.ts and require a green result before the full gate.
 
-- [ ] Update the architecture assertions to include the new Domain file and verify the adapter source tree has no filesystem or integration imports.
+- [x] Update the architecture assertions to include the new Domain file and verify the adapter source tree has no filesystem or integration imports.
 
-- [ ] Run the affected test suites in order: pnpm test -- tests/unit/domain/evidence-domain.test.ts tests/contract/evidence-file.contract.test.ts tests/unit/evidence/adapters.test.ts, then pnpm test -- tests/integration/evidence-store.test.ts tests/integration/evidence-import.test.ts tests/integration/evidence-verify.test.ts tests/integration/cli-evidence.test.ts, then pnpm test -- tests/integration/cli.test.ts tests/integration/quality-store.test.ts tests/integration/runtime-store.test.ts tests/integration/server.test.ts.
+- [x] Run the affected test suites in order: pnpm test -- tests/unit/domain/evidence-domain.test.ts tests/contract/evidence-file.contract.test.ts tests/unit/evidence/adapters.test.ts, then pnpm test -- tests/integration/evidence-store.test.ts tests/integration/evidence-import.test.ts tests/integration/evidence-verify.test.ts tests/integration/cli-evidence.test.ts, then pnpm test -- tests/integration/cli.test.ts tests/integration/quality-store.test.ts tests/integration/runtime-store.test.ts tests/integration/server.test.ts.
 
-- [ ] Run the full local gate commands exactly: pnpm format:check, pnpm lint, pnpm typecheck, pnpm build, pnpm test, pnpm check:architecture, pnpm check:docs, pnpm test:e2e, and git diff --check. Record each command and result in the verification record.
+- [x] Run the full local gate commands exactly: pnpm format:check, pnpm lint, pnpm typecheck, pnpm build, pnpm test, pnpm check:architecture, pnpm check:docs, pnpm test:e2e, and git diff --check. Record each command and result in the verification record.
 
-- [ ] Update both Roadmaps and the Release Plan to state that v0.2 Evidence Foundation is implemented in the current checkout only after all local gates pass; state explicitly that no GitHub tag/Release, external CI, registry publication, production deployment, or business acceptance is claimed.
+- [x] Update both Roadmaps and the Release Plan to state that v0.2 Evidence Foundation is implemented in the current checkout only after all local gates pass; state explicitly that no GitHub tag/Release, external CI, registry publication, production deployment, or business acceptance is claimed.
 
-- [ ] Update the local Milestone/Epic registry with the v0.2 implementation boundary and keep remote GitHub objects unclaimed.
+- [x] Update the local Milestone/Epic registry with the v0.2 implementation boundary and keep remote GitHub objects unclaimed.
 
-- [ ] Verify English/Chinese Evidence Contract structural parity with pnpm check:docs, inspect all changed implementation and public-document paths for unresolved placeholder markers, and remove every such match from the v0.2 change set.
+- [x] Verify English/Chinese Evidence Contract structural parity with pnpm check:docs, inspect all changed implementation and public-document paths for unresolved placeholder markers, and remove every such match from the v0.2 change set.
 
-- [ ] Review git status --short, git diff --stat, and git diff --check; stage only Task 6’s intended paths and commit docs: record v0.2 evidence verification.
+- [x] Review git status --short, git diff --stat, and git diff --check; stage only Task 6’s intended paths and commit docs: record v0.2 evidence verification.
 
 ## 计划自审结论
 
