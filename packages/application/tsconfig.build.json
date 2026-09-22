@@ -8,6 +8,7 @@
     "rootDir": "src",
     "paths": {
       "@ai-native-qa-workbench/domain": ["../domain/dist/index.d.ts"],
+      "@ai-native-qa-workbench/evidence": ["../evidence/dist/index.d.ts"],
       "@ai-native-qa-workbench/model-providers": ["../model-providers/dist/index.d.ts"],
       "@ai-native-qa-workbench/project-store": ["../project-store/dist/index.d.ts"]
     }

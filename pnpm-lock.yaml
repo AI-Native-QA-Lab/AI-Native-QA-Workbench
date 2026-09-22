@@ -275,6 +275,9 @@ importers:
       '@ai-native-qa-workbench/domain':
         specifier: workspace:*
         version: link:../domain
+      '@ai-native-qa-workbench/evidence':
+        specifier: workspace:*
+        version: link:../evidence
       '@ai-native-qa-workbench/model-providers':
         specifier: workspace:*
         version: link:../model-providers

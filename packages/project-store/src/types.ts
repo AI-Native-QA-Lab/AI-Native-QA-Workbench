@@ -1,4 +1,5 @@
 import type {
+  ArtifactReference,
   DiagnosticCode,
   EvidenceSnapshot,
   Project,
@@ -31,7 +32,12 @@ export type StoreDiagnosticCode =
   | "EVIDENCE_INPUT_TOO_LARGE"
   | "EVIDENCE_FORMAT_UNSUPPORTED"
   | "EVIDENCE_IMPORT_CONFLICT"
-  | "EVIDENCE_REVISION_CONFLICT";
+  | "EVIDENCE_REVISION_CONFLICT"
+  | "EVIDENCE_REPORT_MISSING"
+  | "EVIDENCE_REPORT_READ_FAILED"
+  | "EVIDENCE_REPORT_MALFORMED"
+  | "EVIDENCE_REPORT_FIELD_INVALID"
+  | "EVIDENCE_REPORT_SECURITY_REJECTED";
 
 export interface StoreDiagnostic {
   code: StoreDiagnosticCode;
@@ -83,6 +89,25 @@ export interface EvidenceStore {
     snapshot: EvidenceSnapshot,
     expectedRevision: string | null,
   ): Promise<EvidenceWriteResult>;
+}
+
+export interface StagedEvidenceArtifact {
+  reference: ArtifactReference;
+  temporaryPath: string;
+  finalPath: string;
+}
+
+export interface EvidenceVerificationResult {
+  valid: boolean;
+  revision: string | null;
+  diagnostics: readonly StoreDiagnostic[];
+}
+
+export interface EvidenceArtifactStore {
+  stageArtifact(rootDirectory: string, bytes: Uint8Array): Promise<StagedEvidenceArtifact>;
+  commitArtifact(stage: StagedEvidenceArtifact): Promise<void>;
+  discardArtifact(stage: StagedEvidenceArtifact): Promise<void>;
+  verifyEvidence(rootDirectory: string): Promise<EvidenceVerificationResult>;
 }
 
 export interface InitProjectResult {
