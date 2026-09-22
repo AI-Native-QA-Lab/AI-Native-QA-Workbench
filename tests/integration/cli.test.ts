@@ -112,6 +112,7 @@ describe("qaw CLI", () => {
     expect(initialized.status).toBe(0);
     expect(doctor.status).toBe(0);
     expect(doctor.stdout).toContain("Doctor passed");
+    expect(doctor.stdout).toContain("evidence");
     expect(opened.status).toBe(0);
     expect(opened.stdout).toContain("requirements=1");
     expect(analysis.status).toBe(0);

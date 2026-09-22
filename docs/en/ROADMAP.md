@@ -1,6 +1,6 @@
 # Roadmap
 
-## Current status (2026-09-21)
+## Current status (2026-09-22)
 
 -   `v0.1.0` is the Bootstrap Release: repository structure, Project File
     Contract, initial domain contracts, CLI bootstrap, CI, and license.
@@ -11,6 +11,9 @@
 -   MockProvider and local fixtures prove the deterministic path only. Live
     model, external integrations, production deployment, and business-quality
     evidence remain outside this gate.
+-   The v0.2 Evidence Foundation is implemented in the current checkout,
+    including contracts, adapters, artifact integrity, import/verify services,
+    and CLI commands. This is not a GitHub tag or Release.
 
 ## M0 --- Repository Bootstrap
 
@@ -24,10 +27,13 @@ Agent Execution Loop, QA Task Loop, ChangeProposal, Human Review,
 Requirement Analysis, Traceability, MockProvider,
 OpenAICompatibleProvider, EN/zh-CN, deterministic Golden Path.
 
-## v0.2 --- Evidence Foundation (next implementation target)
+## v0.2 --- Evidence Foundation (implemented locally; external delivery not assessed)
 
 TestRun, Evidence, provenance, artifact reference/checksum,
-JUnit/Playwright/Pytest import adapters, evidence integrity.
+JUnit/Playwright/Pytest import adapters, evidence integrity, and CLI import/
+verify commands. Quality scoring, trusted evidence assignment, remote
+publication, production deployment, and business acceptance remain out of
+scope.
 
 ## v0.3 --- Quality Engineering Loop
 

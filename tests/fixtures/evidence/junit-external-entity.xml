@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!DOCTYPE testsuite [
+  <!ENTITY external SYSTEM "file:///etc/passwd">
+]>
+<testsuite>
+  <testcase name="&external;"/>
+</testsuite>
