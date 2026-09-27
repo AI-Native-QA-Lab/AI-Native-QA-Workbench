@@ -229,6 +229,9 @@ importers:
       '@ai-native-qa-workbench/project-store':
         specifier: workspace:*
         version: link:../../packages/project-store
+      '@ai-native-qa-workbench/runtime-store':
+        specifier: workspace:*
+        version: link:../../packages/runtime-store
 
   apps/server:
     dependencies:
