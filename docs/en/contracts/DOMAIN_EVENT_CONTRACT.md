@@ -108,4 +108,3 @@ payload required by a trigger is a contract change. It requires synchronized
 English and Chinese documentation, tests, and a migration or compatibility
 decision. Domain Events do not change the v0.1 `project.yaml` or `quality.yaml`
 schema, or the v0.2 `evidence.yaml` schema.
-

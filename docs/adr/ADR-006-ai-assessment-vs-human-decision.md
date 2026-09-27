@@ -70,4 +70,3 @@ Decision record.
 
 Rejected because project-quality decisions must remain portable, diffable, and
 recoverable when rebuildable runtime data is deleted.
-

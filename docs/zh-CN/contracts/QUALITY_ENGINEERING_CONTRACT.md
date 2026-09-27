@@ -158,4 +158,3 @@ outcome、推导状态和双语 reviewer/rationale 表单。它可以提交显�
 v0.3 文件是新增且可选的，不迁移或重写 v0.1/v0.2 文件。修改 YAML 形状、诊断、
 Domain enum、revision 语义或决策边界时，必须同步英文/中文文档、Contract tests
 和明确的兼容性决策。
-

@@ -1,7 +1,7 @@
 # v0.3 Quality Engineering Loop Verification Record
 
-Date: 2026-09-27  
-Execution: Native execution on the current checkout  
+Date: 2026-09-27
+Execution: Native execution on the current checkout
 Branch: `codex/v0.3-quality-engineering-loop`
 
 ## Scope

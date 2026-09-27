@@ -77,4 +77,3 @@ reaction have different invariants, retry semantics, and human boundaries.
 Rejected because PostgreSQL, Redis, Kafka, Kubernetes, and remote workers are
 outside the local-first v0.x core and would add an unaccepted deployment and
 delivery dependency.
-

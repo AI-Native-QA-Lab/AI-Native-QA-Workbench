@@ -99,4 +99,3 @@ pending/retry 路径观察；既有项目质量数据不会被静默删除或回
 都属于 Contract 变更，必须同步英文和中文文档、测试以及 migration/兼容性决策。
 Domain Event 不改变 v0.1 `project.yaml`/`quality.yaml` schema，也不改变 v0.2
 `evidence.yaml` schema。
-

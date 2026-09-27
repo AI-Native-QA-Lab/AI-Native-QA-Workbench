@@ -175,4 +175,3 @@ The v0.3 file is additive and optional. No migration rewrites v0.1 or v0.2
 files. Any change to the YAML shape, diagnostics, domain enums, revision
 semantics, or decision boundary requires synchronized English/Chinese docs,
 contract tests, and an explicit compatibility decision.
-
