@@ -4,7 +4,15 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { FileProjectStore } from "@ai-native-qa-workbench/project-store";
+import {
+  FileEvidenceStore,
+  FileProjectStore,
+  FileQualityEngineeringStore,
+} from "@ai-native-qa-workbench/project-store";
+import {
+  type DomainEvent,
+  QUALITY_ENGINEERING_SCHEMA_VERSION,
+} from "@ai-native-qa-workbench/domain";
 import { SqliteRuntimeStore } from "@ai-native-qa-workbench/runtime-store";
 import { ToolRegistry } from "@ai-native-qa-workbench/tool-runtime";
 
@@ -25,7 +33,7 @@ afterEach(async () => {
 });
 
 describe("SqliteRuntimeStore", () => {
-  it("runs migration 1 and persists typed runtime records across close/reopen", async () => {
+  it("runs migration 2 and persists typed runtime records across close/reopen", async () => {
     const directory = await createTemporaryDirectory();
     const databasePath = join(directory, "runtime.db");
     const first = new SqliteRuntimeStore(databasePath);
@@ -55,7 +63,7 @@ describe("SqliteRuntimeStore", () => {
       status: "running",
     });
 
-    expect(first.getMigrationVersion()).toBe(1);
+    expect(first.getMigrationVersion()).toBe(2);
     expect(first.getSession(sessionId)).toMatchObject({ id: sessionId, uiLocale: "zh-CN" });
     expect(first.listRuns(sessionId)).toHaveLength(1);
     expect(first.listSteps(runId)).toEqual([
@@ -77,17 +85,168 @@ describe("SqliteRuntimeStore", () => {
 
     first.close();
     const reopened = new SqliteRuntimeStore(databasePath);
-    expect(reopened.getMigrationVersion()).toBe(1);
+    expect(reopened.getMigrationVersion()).toBe(2);
     expect(reopened.listRuns(sessionId)).toHaveLength(1);
     reopened.close();
   });
 
-  it("keeps quality YAML outside SQLite and safe to delete runtime DB", async () => {
+  it("persists, deduplicates, and transitions domain events", async () => {
+    const directory = await createTemporaryDirectory();
+    const databasePath = join(directory, "runtime.db");
+    const event: DomainEvent = {
+      id: "event-quality-assessment-requested-001",
+      schemaVersion: "0.3",
+      type: "quality.assessment.requested",
+      aggregateType: "project",
+      aggregateId: "checkout-service",
+      occurredAt: "2026-09-27T08:00:00Z",
+      source: "application",
+      payload: {
+        projectRoot: directory,
+        target: { type: "project" },
+        gateKind: "release-readiness",
+      },
+    };
+    const failedEvent = {
+      ...event,
+      id: "event-evidence-imported-001",
+      type: "evidence.imported",
+    } as DomainEvent;
+    const runtime = new SqliteRuntimeStore(databasePath);
+
+    expect(runtime.appendDomainEvent(event, directory)).toBe(event.id);
+    expect(runtime.appendDomainEvent(event, directory)).toBe(event.id);
+    expect(runtime.getDomainEvent(event.id)).toMatchObject({
+      id: event.id,
+      projectRoot: directory,
+      status: "pending",
+      event,
+    });
+    expect(runtime.listPendingDomainEvents(directory)).toHaveLength(1);
+
+    runtime.markDomainEventProcessed(event.id, "2026-09-27T08:01:00Z");
+    expect(runtime.listPendingDomainEvents(directory)).toEqual([]);
+    expect(runtime.getDomainEvent(event.id)).toMatchObject({
+      status: "processed",
+      processedAt: "2026-09-27T08:01:00Z",
+    });
+
+    runtime.appendDomainEvent(failedEvent, directory);
+    runtime.markDomainEventFailed(failedEvent.id, "temporary failure", "2026-09-27T08:02:00Z");
+    expect(runtime.getDomainEvent(failedEvent.id)).toMatchObject({
+      status: "failed",
+      error: "temporary failure",
+      failedAt: "2026-09-27T08:02:00Z",
+    });
+    runtime.close();
+
+    const reopened = new SqliteRuntimeStore(databasePath);
+    expect(reopened.getDomainEvent(event.id)?.event).toEqual(event);
+    expect(reopened.getDomainEvent(failedEvent.id)?.status).toBe("failed");
+    reopened.close();
+  });
+
+  it("deduplicates workflow runs by trigger event and kind and preserves ordered steps", async () => {
+    const directory = await createTemporaryDirectory();
+    const runtime = new SqliteRuntimeStore(join(directory, "runtime.db"));
+    const sessionId = runtime.createSession({ projectRoot: directory, uiLocale: "en" });
+    const runId = runtime.appendRun({ sessionId, kind: "quality-engineering" });
+    const triggerEventId = "event-quality-assessment-requested-001";
+
+    const firstWorkflowId = runtime.appendWorkflowRun({
+      runId,
+      kind: "quality-engineering",
+      workflowKind: "quality-engineering",
+      triggerEventId,
+      status: "running",
+    });
+    const duplicateWorkflowId = runtime.appendWorkflowRun({
+      runId,
+      kind: "quality-engineering",
+      workflowKind: "quality-engineering",
+      triggerEventId,
+      status: "running",
+    });
+
+    expect(duplicateWorkflowId).toBe(firstWorkflowId);
+    expect(runtime.findWorkflowRun({ triggerEventId, kind: "quality-engineering" })).toMatchObject({
+      id: firstWorkflowId,
+      triggerEventId,
+      workflowKind: "quality-engineering",
+    });
+
+    const firstStepId = runtime.appendWorkflowStep({
+      workflowRunId: firstWorkflowId,
+      key: "load",
+      status: "completed",
+      payload: { revision: "a".repeat(64) },
+    });
+    expect(
+      runtime.appendWorkflowStep({
+        workflowRunId: firstWorkflowId,
+        key: "load",
+        status: "completed",
+        payload: { revision: "b".repeat(64) },
+      }),
+    ).toBe(firstStepId);
+    runtime.appendWorkflowStep({
+      workflowRunId: firstWorkflowId,
+      key: "write",
+      status: "completed",
+      payload: { written: true },
+    });
+    expect(runtime.listWorkflowSteps(firstWorkflowId)).toEqual([
+      expect.objectContaining({
+        id: firstStepId,
+        key: "load",
+        payload: { revision: "a".repeat(64) },
+      }),
+      expect.objectContaining({ key: "write", payload: { written: true } }),
+    ]);
+
+    runtime.updateWorkflowRun(firstWorkflowId, {
+      status: "completed",
+      completedAt: "2026-09-27T08:03:00Z",
+    });
+    expect(runtime.listWorkflowRuns(runId)).toContainEqual(
+      expect.objectContaining({
+        id: firstWorkflowId,
+        status: "completed",
+        completedAt: "2026-09-27T08:03:00Z",
+      }),
+    );
+    runtime.close();
+  });
+
+  it("keeps all project-quality YAML outside SQLite and safe to delete runtime DB", async () => {
     const directory = await createTemporaryDirectory();
     const projectStore = new FileProjectStore();
     await projectStore.initProject({ rootDirectory: directory });
     const qualityPath = join(directory, ".ai-qa", "quality.yaml");
     const before = await readFile(qualityPath, "utf8");
+    await new FileQualityEngineeringStore().writeQualityEngineering(
+      directory,
+      {
+        schemaVersion: QUALITY_ENGINEERING_SCHEMA_VERSION,
+        assessments: [],
+        gates: [],
+        humanDecisions: [],
+      },
+      null,
+    );
+    await new FileEvidenceStore().writeEvidence(
+      directory,
+      {
+        schemaVersion: "0.2",
+        testRuns: [],
+        evidenceRecords: [],
+      },
+      null,
+    );
+    const qualityEngineeringPath = join(directory, ".ai-qa", "quality-engineering.yaml");
+    const evidencePath = join(directory, ".ai-qa", "evidence.yaml");
+    const beforeQualityEngineering = await readFile(qualityEngineeringPath, "utf8");
+    const beforeEvidence = await readFile(evidencePath, "utf8");
     const runtimePath = join(directory, ".ai-qa", "runtime.db");
     const runtime = new SqliteRuntimeStore(runtimePath);
     runtime.createSession({ projectRoot: directory, uiLocale: "en" });
@@ -98,6 +257,8 @@ describe("SqliteRuntimeStore", () => {
 
     expect(quality.valid).toBe(true);
     expect(await readFile(qualityPath, "utf8")).toBe(before);
+    expect(await readFile(qualityEngineeringPath, "utf8")).toBe(beforeQualityEngineering);
+    expect(await readFile(evidencePath, "utf8")).toBe(beforeEvidence);
   });
 
   it("persists ToolRegistry audit records through the runtime store context", async () => {

@@ -4,6 +4,8 @@ import { dirname } from "node:path";
 
 import Database from "better-sqlite3";
 
+import type { DomainEvent } from "@ai-native-qa-workbench/domain";
+
 import { migrateRuntimeDatabase } from "./schema.js";
 
 export type RuntimeLocale = "en" | "zh-CN";
@@ -55,6 +57,33 @@ export interface RuntimeWorkflowRun {
   kind: string;
   status: string;
   createdAt: string;
+  triggerEventId?: string;
+  workflowKind?: string;
+  error?: string;
+  completedAt?: string;
+}
+
+export type RuntimeDomainEventStatus = "pending" | "processed" | "failed";
+export type RuntimeWorkflowStatus = "pending" | "running" | "completed" | "failed";
+
+export interface RuntimeDomainEventRecord {
+  id: string;
+  projectRoot: string;
+  event: DomainEvent;
+  status: RuntimeDomainEventStatus;
+  receivedAt: string;
+  processedAt?: string;
+  failedAt?: string;
+  error?: string;
+}
+
+export interface RuntimeWorkflowStep {
+  id: string;
+  workflowRunId: string;
+  key: string;
+  status: string;
+  payload: unknown;
+  createdAt: string;
 }
 
 export interface RuntimeStore {
@@ -72,7 +101,30 @@ export interface RuntimeStore {
     action: string;
     status: RuntimeApproval["status"];
   }): string;
-  appendWorkflowRun(input: { runId: string; kind: string; status: string }): string;
+  appendWorkflowRun(input: {
+    runId: string;
+    kind: string;
+    status: string;
+    triggerEventId?: string;
+    workflowKind?: string;
+  }): string;
+  appendDomainEvent(event: DomainEvent, projectRoot: string): string;
+  getDomainEvent(id: string): RuntimeDomainEventRecord | undefined;
+  listPendingDomainEvents(projectRoot: string): RuntimeDomainEventRecord[];
+  markDomainEventProcessed(eventId: string, processedAt: string): void;
+  markDomainEventFailed(eventId: string, error: string, failedAt: string): void;
+  findWorkflowRun(input: { triggerEventId: string; kind: string }): RuntimeWorkflowRun | undefined;
+  appendWorkflowStep(input: {
+    workflowRunId: string;
+    key: string;
+    status: string;
+    payload: unknown;
+  }): string;
+  listWorkflowSteps(workflowRunId: string): RuntimeWorkflowStep[];
+  updateWorkflowRun(
+    id: string,
+    input: { status: string; error?: string; completedAt?: string },
+  ): void;
   getMigrationVersion(): number;
   getSession(id: string): RuntimeSession | undefined;
   listRuns(sessionId: string): RuntimeRun[];
@@ -89,6 +141,32 @@ function parsePayload(payload: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+interface WorkflowRunRow {
+  id: string;
+  run_id: string;
+  kind: string;
+  status: string;
+  created_at: string;
+  trigger_event_id?: string | null;
+  workflow_kind?: string | null;
+  error?: string | null;
+  completed_at?: string | null;
+}
+
+function mapWorkflowRun(row: WorkflowRunRow): RuntimeWorkflowRun {
+  return {
+    id: row.id,
+    runId: row.run_id,
+    kind: row.kind,
+    status: row.status,
+    createdAt: row.created_at,
+    ...(row.trigger_event_id ? { triggerEventId: row.trigger_event_id } : {}),
+    ...(row.workflow_kind ? { workflowKind: row.workflow_kind } : {}),
+    ...(row.error ? { error: row.error } : {}),
+    ...(row.completed_at ? { completedAt: row.completed_at } : {}),
+  };
 }
 
 export class SqliteRuntimeStore implements RuntimeStore {
@@ -174,14 +252,192 @@ export class SqliteRuntimeStore implements RuntimeStore {
     return id;
   }
 
-  appendWorkflowRun(input: { runId: string; kind: string; status: string }): string {
+  appendWorkflowRun(input: {
+    runId: string;
+    kind: string;
+    status: string;
+    triggerEventId?: string;
+    workflowKind?: string;
+  }): string {
+    const id = randomUUID();
+    const workflowKind = input.workflowKind ?? (input.triggerEventId ? input.kind : null);
+    const triggerEventId = input.triggerEventId ?? null;
+    this.database
+      .prepare(
+        `INSERT INTO workflow_runs(
+          id, run_id, kind, status, created_at, trigger_event_id, workflow_kind
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT DO NOTHING`,
+      )
+      .run(
+        id,
+        input.runId,
+        input.kind,
+        input.status,
+        new Date().toISOString(),
+        triggerEventId,
+        workflowKind,
+      );
+
+    if (input.triggerEventId && workflowKind) {
+      const existing = this.database
+        .prepare("SELECT id FROM workflow_runs WHERE trigger_event_id = ? AND workflow_kind = ?")
+        .get(input.triggerEventId, workflowKind) as { id: string } | undefined;
+      return existing?.id ?? id;
+    }
+    return id;
+  }
+
+  appendDomainEvent(event: DomainEvent, projectRoot: string): string {
+    this.database
+      .prepare(
+        `INSERT OR IGNORE INTO domain_events(
+          id, project_root, event_json, status, received_at
+        ) VALUES (?, ?, ?, 'pending', ?)`,
+      )
+      .run(event.id, projectRoot, JSON.stringify(event), new Date().toISOString());
+    return event.id;
+  }
+
+  getDomainEvent(id: string): RuntimeDomainEventRecord | undefined {
+    const row = this.database
+      .prepare(
+        `SELECT id, project_root, event_json, status, received_at, processed_at, failed_at, error
+         FROM domain_events WHERE id = ?`,
+      )
+      .get(id) as
+      | {
+          id: string;
+          project_root: string;
+          event_json: string;
+          status: RuntimeDomainEventStatus;
+          received_at: string;
+          processed_at?: string | null;
+          failed_at?: string | null;
+          error?: string | null;
+        }
+      | undefined;
+    if (!row) return undefined;
+    return {
+      id: row.id,
+      projectRoot: row.project_root,
+      event: JSON.parse(row.event_json) as DomainEvent,
+      status: row.status,
+      receivedAt: row.received_at,
+      ...(row.processed_at ? { processedAt: row.processed_at } : {}),
+      ...(row.failed_at ? { failedAt: row.failed_at } : {}),
+      ...(row.error ? { error: row.error } : {}),
+    };
+  }
+
+  listPendingDomainEvents(projectRoot: string): RuntimeDomainEventRecord[] {
+    const rows = this.database
+      .prepare(
+        `SELECT id FROM domain_events
+         WHERE project_root = ? AND status = 'pending'
+         ORDER BY received_at, id`,
+      )
+      .all(projectRoot) as Array<{ id: string }>;
+    return rows
+      .map((row) => this.getDomainEvent(row.id))
+      .filter((record): record is RuntimeDomainEventRecord => record !== undefined);
+  }
+
+  markDomainEventProcessed(eventId: string, processedAt: string): void {
+    this.database
+      .prepare(
+        `UPDATE domain_events
+         SET status = 'processed', processed_at = ?, failed_at = NULL, error = NULL
+         WHERE id = ?`,
+      )
+      .run(processedAt, eventId);
+  }
+
+  markDomainEventFailed(eventId: string, error: string, failedAt: string): void {
+    this.database
+      .prepare(
+        `UPDATE domain_events
+         SET status = 'failed', failed_at = ?, error = ?, processed_at = NULL
+         WHERE id = ?`,
+      )
+      .run(failedAt, error, eventId);
+  }
+
+  findWorkflowRun(input: { triggerEventId: string; kind: string }): RuntimeWorkflowRun | undefined {
+    const row = this.database
+      .prepare(
+        `SELECT id, run_id, kind, status, created_at, trigger_event_id, workflow_kind, error, completed_at
+         FROM workflow_runs
+         WHERE trigger_event_id = ? AND workflow_kind = ?
+         ORDER BY created_at, id LIMIT 1`,
+      )
+      .get(input.triggerEventId, input.kind) as WorkflowRunRow | undefined;
+    return row ? mapWorkflowRun(row) : undefined;
+  }
+
+  appendWorkflowStep(input: {
+    workflowRunId: string;
+    key: string;
+    status: string;
+    payload: unknown;
+  }): string {
     const id = randomUUID();
     this.database
       .prepare(
-        "INSERT INTO workflow_runs(id, run_id, kind, status, created_at) VALUES (?, ?, ?, ?, ?)",
+        `INSERT INTO workflow_steps(
+          id, workflow_run_id, step_key, status, payload_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(workflow_run_id, step_key) DO NOTHING`,
       )
-      .run(id, input.runId, input.kind, input.status, new Date().toISOString());
-    return id;
+      .run(
+        id,
+        input.workflowRunId,
+        input.key,
+        input.status,
+        JSON.stringify(input.payload ?? null),
+        new Date().toISOString(),
+      );
+    const existing = this.database
+      .prepare("SELECT id FROM workflow_steps WHERE workflow_run_id = ? AND step_key = ?")
+      .get(input.workflowRunId, input.key) as { id: string } | undefined;
+    return existing?.id ?? id;
+  }
+
+  listWorkflowSteps(workflowRunId: string): RuntimeWorkflowStep[] {
+    const rows = this.database
+      .prepare(
+        `SELECT id, workflow_run_id, step_key, status, payload_json, created_at
+         FROM workflow_steps WHERE workflow_run_id = ? ORDER BY rowid`,
+      )
+      .all(workflowRunId) as Array<{
+      id: string;
+      workflow_run_id: string;
+      step_key: string;
+      status: string;
+      payload_json: string;
+      created_at: string;
+    }>;
+    return rows.map((row) => ({
+      id: row.id,
+      workflowRunId: row.workflow_run_id,
+      key: row.step_key,
+      status: row.status,
+      payload: parsePayload(row.payload_json),
+      createdAt: row.created_at,
+    }));
+  }
+
+  updateWorkflowRun(
+    id: string,
+    input: { status: string; error?: string; completedAt?: string },
+  ): void {
+    this.database
+      .prepare(
+        `UPDATE workflow_runs
+         SET status = ?, error = COALESCE(?, error), completed_at = COALESCE(?, completed_at)
+         WHERE id = ?`,
+      )
+      .run(input.status, input.error ?? null, input.completedAt ?? null, id);
   }
 
   getMigrationVersion(): number {
@@ -298,7 +554,8 @@ export class SqliteRuntimeStore implements RuntimeStore {
   listWorkflowRuns(runId: string): RuntimeWorkflowRun[] {
     const rows = this.database
       .prepare(
-        "SELECT id, run_id, kind, status, created_at FROM workflow_runs WHERE run_id = ? ORDER BY created_at, id",
+        `SELECT id, run_id, kind, status, created_at, trigger_event_id, workflow_kind, error, completed_at
+         FROM workflow_runs WHERE run_id = ? ORDER BY created_at, id`,
       )
       .all(runId) as Array<{
       id: string;
@@ -306,14 +563,12 @@ export class SqliteRuntimeStore implements RuntimeStore {
       kind: string;
       status: string;
       created_at: string;
+      trigger_event_id?: string | null;
+      workflow_kind?: string | null;
+      error?: string | null;
+      completed_at?: string | null;
     }>;
-    return rows.map((row) => ({
-      id: row.id,
-      runId: row.run_id,
-      kind: row.kind,
-      status: row.status,
-      createdAt: row.created_at,
-    }));
+    return rows.map(mapWorkflowRun);
   }
 
   close(): void {
