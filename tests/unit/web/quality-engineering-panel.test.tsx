@@ -3,10 +3,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { QualityEngineeringPanel } from "@ai-native-qa-workbench/web";
-import { translate } from "@ai-native-qa-workbench/web";
+import {
+  QualityEngineeringPanel,
+  translate,
+  type QualityEngineeringView,
+} from "@ai-native-qa-workbench/web";
 
-const baseState = {
+const baseState: QualityEngineeringView = {
   valid: true,
   revision: "a".repeat(64),
   qualityEngineering: {
@@ -38,6 +41,7 @@ const baseState = {
     humanDecisions: [],
   },
   resolvedGateStatuses: { "gate-project": "pending" as const },
+  diagnostics: [],
 };
 
 describe("QualityEngineeringPanel", () => {

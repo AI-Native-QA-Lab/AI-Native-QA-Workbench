@@ -26,6 +26,21 @@
 -   本 Gate 不声明 GitHub Tag/Release、外部 CI、registry publication、生产部署、
     browser/runtime model evaluation 或 business acceptance。
 
+## v0.3 Quality Engineering Loop Implementation Gate（2026-09-27）
+
+-   本地实现范围包括 Domain Event Contract、`.ai-qa/quality-engineering.yaml`
+    Source of Truth、Runtime migration 2、确定性的 Assessment/Gate、唯一的
+    HumanDecision Application boundary，以及 Agent/QA Task/Quality Engineering
+    三个 Loop 的事件驱动整合。
+-   CLI 新增 `qaw quality validate/evaluate/process/decide`；本地 HTTP API 和
+    Workbench panel 提供评估、Gate 状态和显式 reviewer/rationale 决策路径。
+-   v0.3 不自动批准 Gate，不把 SQLite 作为质量数据 Source of Truth，不引入
+    真实 LLM、远端消息基础设施或分布式 exactly-once 语义。
+-   验证记录见
+    [`docs/superpowers/records/2026-09-27-v0-3-quality-engineering-loop-verification.md`](../superpowers/records/2026-09-27-v0-3-quality-engineering-loop-verification.md)。
+-   本 Gate 不声明 GitHub Tag/Release、外部 CI、registry publication、生产部署、
+    browser/runtime model evaluation 或 business acceptance。
+
 ## 本地 Gate 与 GitHub 交付边界
 
 本地 Gate 通过只说明当前 checkout 的源码、测试、构建、架构、文档和 MockProvider

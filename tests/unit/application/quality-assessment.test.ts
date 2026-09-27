@@ -23,7 +23,7 @@ const quality: QualitySnapshot = {
 function evidenceSnapshot(
   status: "passed" | "failed" | "error" | "incomplete" | "skipped" = "passed",
   trust: "unverified" | "trusted" | "human-recorded" = "trusted",
-  results: Array<{
+  results: ReadonlyArray<{
     name: string;
     status: "passed" | "failed" | "error" | "unknown" | "skipped";
   }> = [{ name: "checkout passes", status: "passed" }],
@@ -35,7 +35,7 @@ function evidenceSnapshot(
         id: "run-checkout",
         format: "junit",
         status,
-        results,
+        results: [...results],
       },
     ],
     evidenceRecords: [

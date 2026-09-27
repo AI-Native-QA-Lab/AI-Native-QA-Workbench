@@ -7,7 +7,7 @@ Planned ADRs:
 3.  ADR-003 --- Three Loops Architecture
 4.  ADR-004 --- Test Obligation as a first-class entity
 5.  ADR-005 --- Evidence as a first-class entity
-6.  ADR-006 --- AI Assessment vs Human Decision
+6.  [ADR-006 --- AI Assessment vs Human Decision](ADR-006-ai-assessment-vs-human-decision.md)
 7.  ADR-007 --- ChangeProposal for AI mutations
 8.  ADR-008 --- Traceability Graph
 9.  ADR-009 --- Model Provider abstraction
@@ -17,7 +17,7 @@ Planned ADRs:
 13. ADR-013 --- Technology Stack
 14. ADR-014 --- Agent Pause/Resume + Human Approval
 15. ADR-015 --- QA Task Completion Contract
-16. ADR-016 --- Event-driven Quality Engineering Loop
+16. [ADR-016 --- Event-driven Quality Engineering Loop](ADR-016-event-driven-quality-engineering-loop.md)
 
 Future ADRs: - Shared Workbench Deployment - PostgreSQL Storage
 Adapter - Shared Artifact Storage - Multi-user Concurrency

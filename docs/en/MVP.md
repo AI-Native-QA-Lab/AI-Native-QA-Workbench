@@ -59,11 +59,23 @@ The path is implemented with MockProvider and local fixture data. It does not
 prove live LLM quality, external integrations, production deployment, or
 execution Evidence.
 
+## v0.2/v0.3 local implementation status
+
+The current checkout includes the v0.2 Evidence Foundation and the v0.3
+Quality Engineering Loop. Evidence remains file-first and unverified by
+default. v0.3 adds the optional `quality-engineering.yaml` file, Domain Event
+runtime, deterministic Assessment/Gate evaluation, explicit HumanDecision
+service, CLI/API boundaries, and a Workbench Golden Path from evaluation to a
+resolved human decision.
+
+These local capabilities do not claim a GitHub tag/Release, external CI,
+production deployment, live-model evaluation, or business acceptance.
+
 ## Deferred scope
 
-TestRun, Evidence, QualityAssessment, QualityGate, Domain Events, MCP,
-GitHub/Jira, remote execution, multi-user/RBAC, PostgreSQL, and Shared
-Workbench remain deferred to v0.2/v0.3/1.x/2.x roadmap milestones.
+MCP, GitHub/Jira, remote execution, multi-user/RBAC, PostgreSQL, Shared
+Workbench, numeric quality scoring, and distributed Workflow processing remain
+deferred to later roadmap milestones.
 
 ## Evidence boundary
 

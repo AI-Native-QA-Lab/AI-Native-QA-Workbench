@@ -1,12 +1,13 @@
 # Roadmap
 
-## 当前状态（2026-09-22）
+## 当前状态（2026-09-27）
 
 -   `v0.1.0` 是 Bootstrap Release：包含仓库结构、Project File
     Contract、初始 Domain Contract、CLI 基础、CI 和许可证。
 -   剩余 v0.1 MVP 已在本地 `main` 工作区实现完成，并通过离线质量门禁和确定性的浏览器 Golden Path。本状态是实现收口，不代表已经创建新的 GitHub Release。
 -   MockProvider 和本地 Fixture 只证明确定性流程。真实模型、外部集成、生产部署和业务质量证据不属于本次 Gate。
 -   v0.2 Evidence Foundation 已在当前 checkout 实现，包括 Contract、Adapter、Artifact Integrity、Import/Verify Service 和 CLI 命令；这不代表已经创建 GitHub Tag 或 Release。
+-   v0.3 Quality Engineering Loop 已在当前 checkout 实现，包括 Domain Event、Workflow Runtime migration 2、确定性的 QualityAssessment/QualityGate、HumanDecision、CLI/API/UI boundary 和事件驱动的 Three Loops 整合。本状态只表示本地实现 Gate，不代表 GitHub Tag、Release、外部 CI、部署或业务验收。
 
 ## M0 --- Repository Bootstrap
 
@@ -28,7 +29,7 @@ Reference/Checksum、JUnit/Playwright/Pytest Adapter、Evidence
 Integrity，以及 CLI Import/Verify 命令。Quality Score、Trusted Evidence
 赋值、远端发布、生产部署和业务验收仍不在本范围内。
 
-## v0.3 --- Quality Engineering Loop
+## v0.3 --- Quality Engineering Loop（已在本地实现；外部交付尚未评估）
 
 Domain Events、Workflow
 Runtime、QualityAssessment、QualityGate、HumanDecision、完整

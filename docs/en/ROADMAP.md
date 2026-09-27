@@ -1,6 +1,6 @@
 # Roadmap
 
-## Current status (2026-09-22)
+## Current status (2026-09-27)
 
 -   `v0.1.0` is the Bootstrap Release: repository structure, Project File
     Contract, initial domain contracts, CLI bootstrap, CI, and license.
@@ -14,6 +14,12 @@
 -   The v0.2 Evidence Foundation is implemented in the current checkout,
     including contracts, adapters, artifact integrity, import/verify services,
     and CLI commands. This is not a GitHub tag or Release.
+-   The v0.3 Quality Engineering Loop is implemented in the current checkout,
+    including Domain Events, Workflow Runtime migration 2, deterministic
+    QualityAssessment/QualityGate, HumanDecision, CLI/API/UI boundaries, and
+    the event-driven Three Loops integration. This is a local implementation
+    gate, not a GitHub tag, Release, external CI result, deployment, or business
+    acceptance.
 
 ## M0 --- Repository Bootstrap
 
@@ -35,7 +41,7 @@ verify commands. Quality scoring, trusted evidence assignment, remote
 publication, production deployment, and business acceptance remain out of
 scope.
 
-## v0.3 --- Quality Engineering Loop
+## v0.3 --- Quality Engineering Loop (implemented locally; external delivery not assessed)
 
 Domain Events, workflow runtime, QualityAssessment, QualityGate,
 HumanDecision, full event-driven Three Loops.

@@ -7,6 +7,18 @@ compatibility guarantees before the v1.0 stable release.
 
 ## [Unreleased]
 
+- Implemented the local v0.3 Quality Engineering Loop: Domain Events, runtime
+  migration 2, deterministic QualityAssessment/QualityGate evaluation, and
+  explicit HumanDecision persistence in `.ai-qa/quality-engineering.yaml`.
+- Added event-driven integration across the Agent Execution Loop, QA Task Loop,
+  and Quality Engineering Loop with idempotent Workflow Runs, pending retry,
+  and audit events.
+- Added `qaw quality validate`, `evaluate`, `process`, and `decide`, plus local
+  HTTP endpoints and a bilingual Workbench panel for Assessment/Gate status and
+  reviewer/rationale decisions.
+- Added v0.3 Domain Event and Quality Engineering public contracts, ADR-006 and
+  ADR-016, and a verification record with explicit local/external evidence
+  boundaries.
 - Completed the local-first v0.1 MVP implementation: quality snapshot and
   traceability, atomic ChangeProposal apply with explicit Human Review, SQLite
   runtime state, Tool/Provider/Agent contracts, QA Task completion loop,

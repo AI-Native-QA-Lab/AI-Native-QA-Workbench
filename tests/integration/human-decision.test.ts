@@ -102,7 +102,9 @@ describe("FileHumanDecisionService integration", () => {
     const projectStore = new FileProjectStore();
     const evidenceStore = new FileEvidenceStore();
     const publisher: DomainEventPublisher = {
-      publish: async (event) => fixture.publisherEvents.push(event),
+      publish: async (event) => {
+        fixture.publisherEvents.push(event);
+      },
     };
     const service = new FileHumanDecisionService({
       projectStore,
@@ -151,10 +153,12 @@ describe("FileHumanDecisionService integration", () => {
     const fixture = await createFixture();
     const projectStore = new FileProjectStore();
     const evidenceStore = new FileEvidenceStore();
+    const publisher: DomainEventPublisher = { publish: async () => {} };
     const service = new FileHumanDecisionService({
       projectStore,
       evidenceStore,
       qualityEngineeringStore: fixture.qualityEngineeringStore,
+      publisher,
       clock: () => "2026-09-27T08:02:00Z",
       idFactory: () => "decision-release",
     });
@@ -190,6 +194,7 @@ describe("FileHumanDecisionService integration", () => {
       projectStore: new FileProjectStore(),
       evidenceStore: new FileEvidenceStore(),
       qualityEngineeringStore: fixture.qualityEngineeringStore,
+      publisher: { publish: async () => {} },
       clock: () => "2026-09-27T08:02:00Z",
       idFactory: () => "decision-release",
     });
