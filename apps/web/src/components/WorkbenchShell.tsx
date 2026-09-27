@@ -1,8 +1,10 @@
 import type { FormEvent } from "react";
 
-import type { ProposalView, QualityView } from "../api.js";
+import type { ProposalView, QualityEngineeringView, QualityView, WorkbenchApi } from "../api.js";
+import type { QualityTarget } from "@ai-native-qa-workbench/domain";
 import { LocaleSwitcher } from "./LocaleSwitcher.js";
 import { ProposalReview } from "./ProposalReview.js";
+import { QualityEngineeringPanel } from "./QualityEngineeringPanel.js";
 import type { MessageKey, UiLocale } from "../i18n.js";
 import type { WorkbenchView } from "./WorkbenchView.js";
 
@@ -12,6 +14,7 @@ export interface WorkbenchShellProps {
   locale: UiLocale;
   projectName: string;
   quality: QualityView | undefined;
+  qualityEngineering: QualityEngineeringView | undefined;
   proposal: ProposalView | undefined;
   requirementId: string;
   outputLocale: UiLocale;
@@ -24,6 +27,11 @@ export interface WorkbenchShellProps {
   onOutputLocaleChange: (locale: UiLocale) => void;
   onAnalyze: (event: FormEvent<HTMLFormElement>) => void;
   onDecision: (decision: "approve" | "reject", reviewer: string) => void;
+  onEvaluateQuality: (target: QualityTarget) => void | Promise<void>;
+  onQualityGateDecision: (
+    gateId: string,
+    input: Parameters<WorkbenchApi["decideQualityGate"]>[1],
+  ) => void | Promise<void>;
   onViewChange: (view: WorkbenchView) => void;
 }
 
@@ -251,6 +259,13 @@ function DashboardView(
       <div className="dashboard-primary">
         <QualitySnapshot quality={props.quality} t={props.t} />
         <WorkflowOverview quality={props.quality} t={props.t} />
+        <QualityEngineeringPanel
+          locale={props.locale}
+          state={props.qualityEngineering}
+          t={props.t}
+          onEvaluate={props.onEvaluateQuality}
+          onDecision={props.onQualityGateDecision}
+        />
         <RequirementAnalyzer {...props} quality={props.quality} />
       </div>
       <QualityRadar quality={props.quality} t={props.t} />

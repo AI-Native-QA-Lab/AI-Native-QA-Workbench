@@ -1,3 +1,13 @@
+import type {
+  AssessmentVerdict,
+  HumanDecision,
+  HumanDecisionType,
+  QualityEngineeringSnapshot,
+  QualityGateOutcome,
+  QualityTarget,
+  ResolvedGateStatus,
+} from "@ai-native-qa-workbench/domain";
+
 export interface ProjectView {
   id: string;
   name: string;
@@ -25,9 +35,63 @@ export interface DecisionView {
   phase?: string;
 }
 
+export interface QualityEngineeringView {
+  valid: boolean;
+  qualityEngineering?: QualityEngineeringSnapshot;
+  revision: string | null;
+  resolvedGateStatuses: Record<string, ResolvedGateStatus>;
+  diagnostics: Array<Record<string, unknown>>;
+}
+
+export interface QualityEvaluationView {
+  eventId: string;
+  status: "processed" | "failed";
+  processed: boolean;
+  workflowRunId?: string;
+  assessmentId?: string;
+  gateId?: string;
+  diagnostics: Array<Record<string, unknown>>;
+}
+
+export interface HumanDecisionView {
+  written: boolean;
+  decision?: HumanDecision;
+  qualityEngineering?: QualityEngineeringSnapshot;
+  resolvedGateStatus?: ResolvedGateStatus;
+  revision?: string;
+  diagnostics: Array<Record<string, unknown>>;
+}
+
+export interface QualityAssessmentView {
+  id: string;
+  verdict: AssessmentVerdict;
+  summary: string;
+  reasonCodes: string[];
+  evidenceIds: string[];
+}
+
+export interface QualityGateView {
+  id: string;
+  outcome: QualityGateOutcome;
+  target: QualityTarget;
+  assessmentId: string;
+}
+
 export interface WorkbenchApi {
   getProject(): Promise<{ project: ProjectView }>;
   getQuality(): Promise<{ quality: QualityView }>;
+  getQualityEngineering(): Promise<QualityEngineeringView>;
+  evaluateQuality(input: { target: QualityTarget }): Promise<QualityEvaluationView>;
+  processQualityEvents(): Promise<QualityEvaluationView[]>;
+  decideQualityGate(
+    gateId: string,
+    input: {
+      decision: HumanDecisionType;
+      reviewer: string;
+      rationale: string;
+      expectedRevision?: string | null;
+    },
+  ): Promise<HumanDecisionView>;
   analyze(input: { requirementId: string; outputLocale: "en" | "zh-CN" }): Promise<{
     proposal: ProposalView;
   }>;
@@ -48,6 +112,25 @@ export function createApiClient(baseUrl = ""): WorkbenchApi {
   return {
     getProject: () => request(`${baseUrl}`, "/api/project"),
     getQuality: () => request(`${baseUrl}`, "/api/quality"),
+    getQualityEngineering: () => request(`${baseUrl}`, "/api/quality-engineering"),
+    evaluateQuality: (input) =>
+      request(`${baseUrl}`, "/api/quality/evaluate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      }),
+    processQualityEvents: () =>
+      request(`${baseUrl}`, "/api/quality/process", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+    decideQualityGate: (gateId, input) =>
+      request(`${baseUrl}`, `/api/quality/gates/${encodeURIComponent(gateId)}/decision`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      }),
     analyze: (input) =>
       request(`${baseUrl}`, "/api/analysis", {
         method: "POST",

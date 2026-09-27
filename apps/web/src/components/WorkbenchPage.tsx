@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { ProposalView, QualityView, WorkbenchApi } from "../api.js";
+import type { ProposalView, QualityEngineeringView, QualityView, WorkbenchApi } from "../api.js";
 import { readStoredUiLocale, storeUiLocale, translate, type UiLocale } from "../i18n.js";
 import { WorkbenchShell } from "./WorkbenchShell.js";
 import { readWorkbenchView, type WorkbenchView } from "./WorkbenchView.js";
@@ -10,6 +10,9 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
   const [outputLocale, setOutputLocale] = useState<UiLocale>("en");
   const [projectName, setProjectName] = useState("");
   const [quality, setQuality] = useState<QualityView | undefined>();
+  const [qualityEngineering, setQualityEngineering] = useState<
+    QualityEngineeringView | undefined
+  >();
   const [proposal, setProposal] = useState<ProposalView | undefined>();
   const [requirementId, setRequirementId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -36,12 +39,13 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
 
   useEffect(() => {
     let active = true;
-    Promise.all([props.api.getProject(), props.api.getQuality()])
-      .then(([projectResult, qualityResult]) => {
+    Promise.all([props.api.getProject(), props.api.getQuality(), props.api.getQualityEngineering()])
+      .then(([projectResult, qualityResult, qualityEngineeringResult]) => {
         if (!active) return;
         setProjectName(projectResult.project.name);
         setQuality(qualityResult.quality);
         setRequirementId(String(qualityResult.quality.requirements[0]?.id ?? ""));
+        setQualityEngineering(qualityEngineeringResult);
       })
       .catch(() => {
         if (active) setError(t("failed"));
@@ -71,6 +75,36 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
     }
   }
 
+  async function refreshQualityEngineering(): Promise<void> {
+    const result = await props.api.getQualityEngineering();
+    setQualityEngineering(result);
+  }
+
+  async function evaluateQuality(
+    target: Parameters<WorkbenchApi["evaluateQuality"]>[0]["target"],
+  ): Promise<void> {
+    try {
+      const result = await props.api.evaluateQuality({ target });
+      if (!result.processed) throw new Error(t("qualityEngineeringFailed"));
+      await refreshQualityEngineering();
+    } catch {
+      setError(t("qualityEngineeringFailed"));
+    }
+  }
+
+  async function decideQualityGate(
+    gateId: string,
+    input: Parameters<WorkbenchApi["decideQualityGate"]>[1],
+  ): Promise<void> {
+    try {
+      const result = await props.api.decideQualityGate(gateId, input);
+      if (!result.written) throw new Error(t("qualityEngineeringFailed"));
+      await refreshQualityEngineering();
+    } catch {
+      setError(t("qualityEngineeringFailed"));
+    }
+  }
+
   function changeView(nextView: WorkbenchView): void {
     setView(nextView);
     const url = new URL(window.location.href);
@@ -84,6 +118,7 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
       locale={locale}
       projectName={projectName}
       quality={quality}
+      qualityEngineering={qualityEngineering}
       proposal={proposal}
       requirementId={requirementId}
       outputLocale={outputLocale}
@@ -96,6 +131,8 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
       onOutputLocaleChange={setOutputLocale}
       onAnalyze={analyze}
       onDecision={decide}
+      onEvaluateQuality={evaluateQuality}
+      onQualityGateDecision={decideQualityGate}
       onViewChange={changeView}
     />
   );

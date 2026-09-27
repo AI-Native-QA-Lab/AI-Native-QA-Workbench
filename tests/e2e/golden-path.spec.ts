@@ -22,4 +22,16 @@ test("Golden Path: load, analyze, review, apply, and refresh quality counts", as
   await expect(page.getByText("Test obligations: 1")).toBeVisible();
   await expect(page.getByText("Test cases: 1")).toBeVisible();
   await expect(page.getByText("Trace links: 4")).toBeVisible();
+
+  await expect(page.getByRole("heading", { name: "Quality engineering" })).toBeVisible();
+  await page.getByRole("button", { name: "Evaluate project" }).click();
+  await expect(page.getByText("Insufficient evidence")).toBeVisible();
+  await expect(page.getByText("Pending human decision")).toBeVisible();
+
+  const gateDecision = page.locator(".qe-decision-form");
+  await gateDecision.getByLabel("Reviewer").fill("e2e-quality-reviewer");
+  await gateDecision.getByLabel("Rationale").fill("I reviewed the current evidence boundary.");
+  await page.getByRole("button", { name: "Approve", exact: true }).click();
+
+  await expect(page.getByText("Approved")).toBeVisible();
 });

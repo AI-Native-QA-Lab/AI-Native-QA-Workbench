@@ -25,6 +25,21 @@ function api(): WorkbenchApi {
         traceLinks: [{ id: "checkout-link" }],
       },
     }),
+    getQualityEngineering: vi.fn().mockResolvedValue({
+      valid: true,
+      qualityEngineering: {
+        schemaVersion: "0.3",
+        assessments: [],
+        gates: [],
+        humanDecisions: [],
+      },
+      revision: null,
+      resolvedGateStatuses: {},
+      diagnostics: [],
+    }),
+    evaluateQuality: vi.fn(),
+    processQualityEvents: vi.fn(),
+    decideQualityGate: vi.fn(),
     analyze: vi.fn().mockResolvedValue({
       phase: "review",
       proposal: { id: "proposal-1", status: "proposed", operations: [] },
