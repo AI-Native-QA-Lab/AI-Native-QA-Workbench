@@ -101,6 +101,17 @@ describe("domain architecture boundary", () => {
     expect(files).toContain(join(domainSourceRoot, "evidence-domain.ts"));
   });
 
+  it("includes the v0.3 event and quality-engineering modules in the boundary scan", async () => {
+    const files = await collectTypeScriptFiles(domainSourceRoot);
+
+    expect(files).toEqual(
+      expect.arrayContaining([
+        join(domainSourceRoot, "domain-events.ts"),
+        join(domainSourceRoot, "quality-engineering-domain.ts"),
+      ]),
+    );
+  });
+
   it("does not import infrastructure, provider, or test dependencies", async () => {
     const violations = await findImportViolations();
 
