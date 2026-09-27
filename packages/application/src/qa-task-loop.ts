@@ -17,6 +17,7 @@ import {
   runRequirementAnalysis,
   type RequirementAnalysisProvider,
 } from "./requirement-analysis.js";
+import type { DomainEventPublisher } from "./domain-event-publisher.js";
 
 export type QualityTaskPhase =
   | "context"
@@ -65,10 +66,16 @@ interface ProposeInput {
 export class QualityTaskLoop {
   private readonly store: ProjectStore;
   private readonly provider: RequirementAnalysisProvider;
+  private readonly publisher: DomainEventPublisher | undefined;
 
-  constructor(input: { store: ProjectStore; provider: RequirementAnalysisProvider }) {
+  constructor(input: {
+    store: ProjectStore;
+    provider: RequirementAnalysisProvider;
+    publisher?: DomainEventPublisher;
+  }) {
     this.store = input.store;
     this.provider = input.provider;
+    this.publisher = input.publisher;
   }
 
   async propose(input: ProposeInput): Promise<QualityTaskResult> {
@@ -157,6 +164,21 @@ export class QualityTaskLoop {
     const reloaded = await this.store.readQuality(input.rootDirectory);
     const snapshot = reloaded.projectQuality ?? applied.snapshot;
     const completion = completionFor(snapshot, requirementIdFor(reviewed));
+    const requirementIds = requirementIdsFor(reviewed, current.projectQuality);
+    await this.publisher?.publish({
+      id: `event-quality-proposal-applied-${applied.revision ?? "unknown"}`,
+      schemaVersion: "0.3",
+      type: "quality.proposal.applied",
+      aggregateType: "quality",
+      aggregateId: requirementIds[0] ?? "project",
+      occurredAt: new Date().toISOString(),
+      source: "application",
+      payload: {
+        projectRoot: input.rootDirectory,
+        qualityRevision: applied.revision ?? reloaded.revision ?? "",
+        requirementIds,
+      },
+    });
     events.push({ phase: completion.complete ? "complete" : "blocked" });
     return {
       phase: completion.complete ? "complete" : "blocked",
@@ -167,6 +189,39 @@ export class QualityTaskLoop {
       diagnostics: [],
     };
   }
+}
+
+function requirementIdsFor(proposal: ChangeProposal, snapshot: QualitySnapshot): string[] {
+  const ids = new Set<string>();
+  for (const operation of proposal.operations) {
+    if (operation.kind === "delete" || operation.kind === "update") {
+      const collection =
+        operation.entityType === "requirement"
+          ? snapshot.requirements
+          : operation.entityType === "acceptanceCriterion"
+            ? snapshot.acceptanceCriteria
+            : operation.entityType === "qualityRisk"
+              ? snapshot.qualityRisks
+              : [];
+      const existing = collection.find((item) => item.id === operation.id);
+      if (existing && "requirementId" in existing && typeof existing.requirementId === "string") {
+        ids.add(existing.requirementId);
+      } else if (operation.entityType === "requirement") {
+        ids.add(operation.id);
+      }
+    }
+    if (operation.kind === "create" || operation.kind === "update") {
+      if (operation.entity !== null && typeof operation.entity === "object") {
+        const requirementId = (operation.entity as { requirementId?: unknown }).requirementId;
+        if (typeof requirementId === "string") ids.add(requirementId);
+        if (operation.entityType === "requirement") {
+          const id = (operation.entity as { id?: unknown }).id;
+          if (typeof id === "string") ids.add(id);
+        }
+      }
+    }
+  }
+  return [...ids];
 }
 
 function requirementIdFor(proposal: ChangeProposal): string {

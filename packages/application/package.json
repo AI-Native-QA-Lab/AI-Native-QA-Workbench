@@ -23,6 +23,7 @@
     "@ai-native-qa-workbench/domain": "workspace:*",
     "@ai-native-qa-workbench/evidence": "workspace:*",
     "@ai-native-qa-workbench/model-providers": "workspace:*",
-    "@ai-native-qa-workbench/project-store": "workspace:*"
+    "@ai-native-qa-workbench/project-store": "workspace:*",
+    "@ai-native-qa-workbench/runtime-store": "workspace:*"
   }
 }

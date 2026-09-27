@@ -26,6 +26,8 @@ import type {
 } from "@ai-native-qa-workbench/project-store";
 import { EvidenceStoreError } from "@ai-native-qa-workbench/project-store";
 
+import type { DomainEventPublisher } from "./domain-event-publisher.js";
+
 export interface EvidenceImportInput {
   rootDirectory: string;
   reportPath: string;
@@ -138,17 +140,20 @@ export class EvidenceImportService implements EvidenceImporter {
   private readonly evidenceStore: EvidenceStore & EvidenceArtifactStore;
   private readonly adapters: EvidenceAdapterRegistry;
   private readonly now: () => string;
+  private readonly publisher: DomainEventPublisher | undefined;
 
   constructor(dependencies: {
     projectStore: ProjectStore;
     evidenceStore: EvidenceStore & EvidenceArtifactStore;
     adapters: EvidenceAdapterRegistry;
     now?: () => string;
+    publisher?: DomainEventPublisher;
   }) {
     this.projectStore = dependencies.projectStore;
     this.evidenceStore = dependencies.evidenceStore;
     this.adapters = dependencies.adapters;
     this.now = dependencies.now ?? (() => new Date().toISOString());
+    this.publisher = dependencies.publisher;
   }
 
   async import(input: EvidenceImportInput): Promise<EvidenceImportResult> {
@@ -317,6 +322,22 @@ export class EvidenceImportService implements EvidenceImporter {
 
     const reloaded = await this.evidenceStore.validateEvidence(input.rootDirectory);
     if (!reloaded.valid) return failure(reloaded.diagnostics);
+
+    await this.publisher?.publish({
+      id: `event-evidence-imported-${evidenceId}`,
+      schemaVersion: "0.3",
+      type: "evidence.imported",
+      aggregateType: "evidence",
+      aggregateId: evidenceId,
+      occurredAt: importedAt,
+      source: "application",
+      payload: {
+        projectRoot: input.rootDirectory,
+        evidenceRevision: reloaded.revision ?? written.revision ?? current.revision ?? "",
+        testRunId: runId,
+        evidenceId,
+      },
+    });
 
     return {
       imported: true,

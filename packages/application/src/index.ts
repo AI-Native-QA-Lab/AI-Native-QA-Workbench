@@ -6,3 +6,5 @@ export * from "./evidence-import.js";
 export * from "./evidence-verify.js";
 export * from "./quality-assessment.js";
 export * from "./quality-gate.js";
+export * from "./domain-event-publisher.js";
+export * from "./quality-engineering-workflow.js";
