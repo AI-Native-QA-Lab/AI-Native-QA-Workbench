@@ -25,6 +25,22 @@ function api(): WorkbenchApi {
         traceLinks: [{ id: "checkout-link" }],
       },
     }),
+    getQualityEngineering: vi.fn().mockResolvedValue({
+      valid: true,
+      qualityEngineering: {
+        schemaVersion: "0.3",
+        assessments: [],
+        gates: [],
+        humanDecisions: [],
+      },
+      revision: null,
+      resolvedGateStatuses: {},
+      workflowStatuses: [],
+      diagnostics: [],
+    }),
+    evaluateQuality: vi.fn(),
+    processQualityEvents: vi.fn(),
+    decideQualityGate: vi.fn(),
     analyze: vi.fn().mockResolvedValue({
       phase: "review",
       proposal: { id: "proposal-1", status: "proposed", operations: [] },
@@ -35,10 +51,12 @@ function api(): WorkbenchApi {
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
   cleanup();
+  window.history.replaceState({}, "", "/");
 });
 
 describe("WorkbenchPage", () => {
@@ -114,5 +132,77 @@ describe("WorkbenchPage", () => {
     expect(await screen.findByText("Status: applied")).toBeTruthy();
     expect(await screen.findByText("Acceptance criteria: 1")).toBeTruthy();
     expect(client.getQuality).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes and displays a failed workflow status when evaluation fails", async () => {
+    const client = api();
+    client.evaluateQuality = vi.fn().mockResolvedValue({
+      eventId: "event-quality-assessment-requested-failed-001",
+      status: "failed",
+      processed: false,
+      diagnostics: [{ code: "QUALITY_ENGINEERING_WORKFLOW_FAILED" }],
+    });
+    client.getQualityEngineering = vi
+      .fn()
+      .mockResolvedValueOnce({
+        valid: true,
+        qualityEngineering: {
+          schemaVersion: "0.3",
+          assessments: [],
+          gates: [],
+          humanDecisions: [],
+        },
+        revision: null,
+        resolvedGateStatuses: {},
+        workflowStatuses: [],
+        diagnostics: [],
+      })
+      .mockResolvedValueOnce({
+        valid: true,
+        qualityEngineering: {
+          schemaVersion: "0.3",
+          assessments: [],
+          gates: [],
+          humanDecisions: [],
+        },
+        revision: null,
+        resolvedGateStatuses: {},
+        workflowStatuses: [
+          {
+            eventId: "event-quality-assessment-requested-failed-001",
+            eventType: "quality.assessment.requested",
+            status: "failed",
+            error: "temporary failure",
+            receivedAt: "2026-09-27T08:00:00Z",
+          },
+        ],
+        diagnostics: [],
+      });
+    render(<WorkbenchPage api={client} />);
+    await screen.findByRole("heading", { name: "QA Workbench" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate project" }));
+
+    expect(await screen.findByText("Failed")).toBeTruthy();
+    expect(screen.getByText("temporary failure")).toBeTruthy();
+    expect(client.getQualityEngineering).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders the control-room shell and navigates formal workbench views", async () => {
+    window.history.replaceState({}, "", "/?view=dashboard");
+    render(<WorkbenchPage api={api()} />);
+
+    expect(await screen.findByRole("navigation", { name: "Workbench navigation" })).toBeTruthy();
+    expect(screen.getByText("Quality radar")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pipeline" })).toBeTruthy();
+    expect(screen.queryByText("UI preview")).toBeNull();
+    expect(screen.getByRole("button", { name: "Evidence" }).getAttribute("aria-disabled")).toBe(
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Pipeline" }));
+
+    expect(window.location.search).toBe("?view=pipeline");
+    expect(await screen.findByRole("heading", { name: "Test pipeline" })).toBeTruthy();
   });
 });

@@ -9,6 +9,7 @@ import {
   EvidenceImportService,
   type EvidenceImportResult,
 } from "@ai-native-qa-workbench/application";
+import type { DomainEventPublisher } from "@ai-native-qa-workbench/application";
 import {
   createEvidenceAdapterRegistry,
   MAX_EVIDENCE_IMPORT_BYTES,
@@ -91,12 +92,14 @@ function createImporter(
   projectStore: FileProjectStore,
   evidenceStore: EvidenceStore & EvidenceArtifactStore,
   adapters: EvidenceAdapterRegistry = createEvidenceAdapterRegistry(),
+  publisher?: DomainEventPublisher,
 ): EvidenceImportService {
   return new EvidenceImportService({
     projectStore,
     evidenceStore,
     adapters,
     now: () => "2026-09-22T01:00:00Z",
+    ...(publisher ? { publisher } : {}),
   });
 }
 
@@ -291,6 +294,52 @@ describe("EvidenceImportService", () => {
     });
     expect(after.revision).toBe(before.revision);
     expect(after.evidence).toEqual(before.evidence);
+  });
+
+  it("retries publication from an idempotent import after the manifest was already written", async () => {
+    const { directory, reportPath, projectStore, evidenceStore } = await createProject();
+    let failOnce = true;
+    const published: Parameters<DomainEventPublisher["publish"]>[0][] = [];
+    const publisher: DomainEventPublisher = {
+      publish: async (event) => {
+        if (failOnce) {
+          failOnce = false;
+          throw new Error("injected publication failure");
+        }
+        published.push(event);
+      },
+    };
+    const importer = createImporter(
+      projectStore,
+      evidenceStore,
+      createEvidenceAdapterRegistry(),
+      publisher,
+    );
+
+    const first = await importer.import({
+      rootDirectory: directory,
+      reportPath,
+      format: "junit",
+      runId: "run-publication-retry",
+    });
+    const second = await importer.import({
+      rootDirectory: directory,
+      reportPath,
+      format: "junit",
+      runId: "run-publication-retry",
+    });
+
+    expect(first).toMatchObject({ imported: false, idempotent: false });
+    expect(first.evidenceId).toBeTruthy();
+    expect(first.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "QUALITY_ENGINEERING_WORKFLOW_FAILED" }),
+    );
+    expect(second).toMatchObject({
+      imported: true,
+      idempotent: true,
+      evidenceId: first.evidenceId,
+    });
+    expect(published).toHaveLength(1);
   });
 
   it("treats semantically identical evidence as idempotent after YAML key reordering", async () => {

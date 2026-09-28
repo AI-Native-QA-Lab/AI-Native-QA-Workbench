@@ -8,8 +8,11 @@
     "rootDir": "src",
     "paths": {
       "@ai-native-qa-workbench/application": ["../../packages/application/dist/index.d.ts"],
+      "@ai-native-qa-workbench/domain": ["../../packages/domain/dist/index.d.ts"],
+      "@ai-native-qa-workbench/evidence": ["../../packages/evidence/dist/index.d.ts"],
       "@ai-native-qa-workbench/model-providers": ["../../packages/model-providers/dist/index.d.ts"],
-      "@ai-native-qa-workbench/project-store": ["../../packages/project-store/dist/index.d.ts"]
+      "@ai-native-qa-workbench/project-store": ["../../packages/project-store/dist/index.d.ts"],
+      "@ai-native-qa-workbench/runtime-store": ["../../packages/runtime-store/dist/index.d.ts"]
     }
   }
 }

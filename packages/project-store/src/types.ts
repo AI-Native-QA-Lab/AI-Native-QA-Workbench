@@ -4,12 +4,14 @@ import type {
   EvidenceSnapshot,
   Project,
   ProjectLocale,
+  QualityEngineeringSnapshot,
   QualitySnapshot,
 } from "@ai-native-qa-workbench/domain";
 
 export const PROJECT_FILE_RELATIVE_PATH = ".ai-qa/project.yaml";
 export const QUALITY_FILE_RELATIVE_PATH = ".ai-qa/quality.yaml";
 export const EVIDENCE_FILE_RELATIVE_PATH = ".ai-qa/evidence.yaml";
+export const QUALITY_ENGINEERING_FILE_RELATIVE_PATH = ".ai-qa/quality-engineering.yaml";
 export const EVIDENCE_ARTIFACT_DIRECTORY_RELATIVE_PATH = ".ai-qa/evidence";
 
 export type StoreDiagnosticCode =
@@ -37,7 +39,14 @@ export type StoreDiagnosticCode =
   | "EVIDENCE_REPORT_READ_FAILED"
   | "EVIDENCE_REPORT_MALFORMED"
   | "EVIDENCE_REPORT_FIELD_INVALID"
-  | "EVIDENCE_REPORT_SECURITY_REJECTED";
+  | "EVIDENCE_REPORT_SECURITY_REJECTED"
+  | "QUALITY_ENGINEERING_FILE_MALFORMED"
+  | "QUALITY_ENGINEERING_UNKNOWN_KEY"
+  | "QUALITY_ENGINEERING_REVISION_CONFLICT"
+  | "QUALITY_ENGINEERING_WORKFLOW_FAILED"
+  | "QUALITY_ENGINEERING_EVIDENCE_NOT_FOUND"
+  | "QUALITY_ENGINEERING_REQUIREMENT_NOT_FOUND"
+  | "QUALITY_ENGINEERING_TEST_RUN_NOT_FOUND";
 
 export interface StoreDiagnostic {
   code: StoreDiagnosticCode;
@@ -79,6 +88,38 @@ export interface EvidenceWriteResult {
   evidencePath: string;
   revision?: string;
   diagnostics: readonly StoreDiagnostic[];
+}
+
+export interface QualityEngineeringFileParseResult {
+  valid: boolean;
+  qualityEngineering?: QualityEngineeringSnapshot;
+  diagnostics: readonly StoreDiagnostic[];
+}
+
+export interface QualityEngineeringReadResult {
+  valid: boolean;
+  qualityEngineering?: QualityEngineeringSnapshot;
+  revision: string | null;
+  diagnostics: readonly StoreDiagnostic[];
+}
+
+export type QualityEngineeringValidationResult = QualityEngineeringReadResult;
+
+export interface QualityEngineeringWriteResult {
+  written: boolean;
+  qualityEngineeringPath: string;
+  revision?: string;
+  diagnostics: readonly StoreDiagnostic[];
+}
+
+export interface QualityEngineeringStore {
+  readQualityEngineering(rootDirectory: string): Promise<QualityEngineeringReadResult>;
+  validateQualityEngineering(rootDirectory: string): Promise<QualityEngineeringValidationResult>;
+  writeQualityEngineering(
+    rootDirectory: string,
+    snapshot: QualityEngineeringSnapshot,
+    expectedRevision: string | null,
+  ): Promise<QualityEngineeringWriteResult>;
 }
 
 export interface EvidenceStore {

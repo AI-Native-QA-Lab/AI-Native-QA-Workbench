@@ -4,3 +4,8 @@ export * from "./mock-analysis-provider.js";
 export * from "./qa-task-loop.js";
 export * from "./evidence-import.js";
 export * from "./evidence-verify.js";
+export * from "./quality-assessment.js";
+export * from "./quality-gate.js";
+export * from "./domain-event-publisher.js";
+export * from "./quality-engineering-workflow.js";
+export * from "./human-decision.js";

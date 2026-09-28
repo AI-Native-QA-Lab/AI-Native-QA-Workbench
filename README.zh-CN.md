@@ -57,17 +57,36 @@ MVP 已实现：
 - offline unit、contract、integration、architecture、documentation 和
   Playwright Golden Path gate
 
-Evidence 执行、Quality Assessment/Gate、HumanDecision 持久化、Domain Event、
-外部集成和 Shared Workbench 仍属于后续 Roadmap。
+上述 v0.1 MVP 列表不包含 v0.2/v0.3 增量能力；当前 checkout 的实现状态见下文。
+
+## 当前 v0.3 本地范围
+
+当前 checkout 同时实现了本地 v0.2 Evidence Foundation 和 v0.3 Quality
+Engineering Loop：
+
+- `.ai-qa/evidence.yaml` 继续作为 Evidence metadata Source of Truth，并提供
+  artifact integrity 与确定性的 import/verify boundary。
+- `.ai-qa/quality-engineering.yaml` 以 schema version `0.3` 保存
+  QualityAssessment、QualityGate 和 HumanDecision。
+- Domain Event、SQLite Runtime migration 2、pending/retry Workflow、确定性的
+  Assessment 规则，以及 Agent/QA Task/Quality Engineering 的事件整合均可离线运行。
+- 提供 `qaw quality validate`、`evaluate`、`process`、`decide`；本地 HTTP API 与
+  Workbench panel 暴露相同的人类决策边界。
+
+v0.3 本地实现不声明 GitHub tag/Release、外部 CI、生产部署、真实模型评估或业务验收。
+外部集成、Shared Workbench 和 PostgreSQL 仍属于后续 Roadmap。
 
 ## Local-first
 
 - `.ai-qa/`：项目质量数据 Source of Truth
-- SQLite：保存 `agent_sessions`、run、step、tool run、approval、workflow 等运行时状态
+- SQLite：保存 `agent_sessions`、run、step、tool run、approval、workflow、Domain Event
+  和 Workflow Step 等运行时状态
 - Filesystem：大型 Evidence Artifact
 - PostgreSQL：后续 Shared Workbench 可选能力，不是当前版本依赖
 
-完整方案见 [GitHub 项目完整方案](docs/zh-CN/PROJECT_BLUEPRINT.md)。
+完整方案见 [GitHub 项目完整方案](docs/zh-CN/PROJECT_BLUEPRINT.md)。v0.3 Public
+Boundary 见 [Domain Event Contract](docs/zh-CN/contracts/DOMAIN_EVENT_CONTRACT.md)
+与 [Quality Engineering Contract](docs/zh-CN/contracts/QUALITY_ENGINEERING_CONTRACT.md)。
 
 ## License
 
