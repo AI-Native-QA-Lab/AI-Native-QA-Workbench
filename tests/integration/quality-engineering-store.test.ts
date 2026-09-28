@@ -288,7 +288,7 @@ describe("FileQualityEngineeringStore", () => {
 
     const results = await Promise.all([
       store.writeQualityEngineering(directory, snapshot, first.revision ?? null),
-      store.writeQualityEngineering(directory, emptySnapshot(), first.revision ?? null),
+      store.writeQualityEngineering(directory, snapshot, first.revision ?? null),
     ]);
 
     expect(results.filter((result) => result.written)).toHaveLength(1);
