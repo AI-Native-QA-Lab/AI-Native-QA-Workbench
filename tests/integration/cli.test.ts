@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -118,5 +118,23 @@ describe("qaw CLI", () => {
     expect(analysis.status).toBe(0);
     expect(analysis.stdout).toContain('"status":"proposed"');
     expect(await readFile(join(directory, ".ai-qa", "quality.yaml"), "utf8")).toBe(before);
+  });
+
+  it("includes existing v0.3 diagnostics in validate and doctor", async () => {
+    const directory = await createTemporaryDirectory();
+    expect(runCli(["init"], directory).status).toBe(0);
+    await writeFile(
+      join(directory, ".ai-qa", "quality-engineering.yaml"),
+      "schemaVersion: 0.3\nqualityEngineering: [invalid]\n",
+      "utf8",
+    );
+
+    const validate = runCli(["validate"], directory);
+    const doctor = runCli(["doctor"], directory);
+
+    expect(validate.status).toBe(1);
+    expect(validate.stderr).toContain("QUALITY_ENGINEERING_FILE_MALFORMED");
+    expect(doctor.status).toBe(1);
+    expect(doctor.stderr).toContain("QUALITY_ENGINEERING_FILE_MALFORMED");
   });
 });

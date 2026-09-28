@@ -52,10 +52,20 @@ pnpm qaw analyze checkout ./example-project
 该路径已经使用 MockProvider 和本地 fixture 实现，但不证明真实 LLM 质量、外部集成、
 生产部署或执行 Evidence。
 
+## v0.2/v0.3 本地实现状态
+
+当前 checkout 已包含 v0.2 Evidence Foundation 和 v0.3 Quality Engineering Loop。
+Evidence 继续采用 file-first，并默认保持 unverified。v0.3 新增可选的
+`quality-engineering.yaml`、Domain Event Runtime、确定性的 Assessment/Gate 评估、
+显式 HumanDecision service、CLI/API boundary，以及从评估到人类决策 resolved 的
+Workbench Golden Path。
+
+这些本地能力不声明 GitHub tag/Release、外部 CI、生产部署、真实模型评估或业务验收。
+
 ## 延后范围
 
-TestRun、Evidence、QualityAssessment、QualityGate、Domain Event、MCP、GitHub/Jira、
-远程执行、多人/RBAC、PostgreSQL 和 Shared Workbench 延后到 v0.2/v0.3/1.x/2.x。
+MCP、GitHub/Jira、远程执行、多人/RBAC、PostgreSQL、Shared Workbench、数值质量评分和
+分布式 Workflow 处理仍属于后续 Roadmap。
 
 ## 证据边界
 

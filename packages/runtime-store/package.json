@@ -20,6 +20,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@ai-native-qa-workbench/domain": "workspace:*",
     "better-sqlite3": "^13.0.3"
   },
   "devDependencies": {

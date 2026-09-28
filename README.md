@@ -82,14 +82,32 @@ The MVP implements:
 - offline unit, contract, integration, architecture, documentation, and
   Playwright Golden Path gates
 
-Evidence execution, Quality Assessment/Gate, HumanDecision persistence, Domain
-Events, external integrations, and Shared Workbench remain later roadmap scope.
+## Current v0.3 local scope
+
+The current checkout also implements the local v0.2 Evidence Foundation and
+v0.3 Quality Engineering Loop:
+
+- `.ai-qa/evidence.yaml` remains the Evidence metadata source of truth, with
+  artifact integrity and deterministic import/verify boundaries.
+- `.ai-qa/quality-engineering.yaml` stores QualityAssessment, QualityGate, and
+  HumanDecision records with schema version `0.3`.
+- Domain Events, SQLite runtime migration 2, pending/retry Workflow processing,
+  deterministic assessment rules, and the Agent/QA Task/Quality Engineering
+  event integration are available offline.
+- `qaw quality validate`, `evaluate`, `process`, and `decide` are available;
+  the local HTTP API and Workbench panel expose the same human-controlled Gate
+  boundary.
+
+The v0.3 local implementation does not claim a GitHub tag/Release, external CI,
+production deployment, live-model evaluation, or business acceptance. External
+integrations, Shared Workbench, and PostgreSQL remain later roadmap scope.
 
 ## Storage
 
-- Project quality source of truth: `.ai-qa/` using Markdown/YAML/JSON
+- Project quality source of truth: `.ai-qa/` using Markdown/YAML/JSON,
+  including Evidence and Quality Engineering files
 - Runtime state: local SQLite (`agent_sessions`, runs, steps, tool runs,
-  approvals, workflows)
+  approvals, workflows, Domain Events, and Workflow Steps)
 - Large evidence artifacts: local filesystem references
 - PostgreSQL: optional future Shared Workbench capability, not a current
   dependency
@@ -102,7 +120,9 @@ Events, external integrations, and Shared Workbench remain later roadmap scope.
 - Architecture decisions: `docs/adr/`
 
 See [Project Blueprint](docs/en/PROJECT_BLUEPRINT.md) and
-[Roadmap](docs/en/ROADMAP.md).
+[Roadmap](docs/en/ROADMAP.md). The v0.3 public boundaries are documented in the
+[Domain Event Contract](docs/en/contracts/DOMAIN_EVENT_CONTRACT.md) and
+[Quality Engineering Contract](docs/en/contracts/QUALITY_ENGINEERING_CONTRACT.md).
 
 ## License
 

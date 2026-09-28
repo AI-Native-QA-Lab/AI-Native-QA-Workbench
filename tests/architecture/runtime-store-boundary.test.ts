@@ -34,7 +34,7 @@ describe("runtime store architecture boundary", () => {
       /quality\.yaml|requirements|acceptanceCriteria|qualityRisks|testObligations|testCases|traceLinks/,
     );
     expect(combined).toMatch(
-      /agent_sessions|agent_runs|agent_steps|tool_runs|approval_requests|workflow_runs/,
+      /agent_sessions|agent_runs|agent_steps|tool_runs|approval_requests|workflow_runs|domain_events|workflow_steps/,
     );
   });
 });

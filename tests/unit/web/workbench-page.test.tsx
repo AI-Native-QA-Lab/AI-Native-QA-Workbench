@@ -25,6 +25,22 @@ function api(): WorkbenchApi {
         traceLinks: [{ id: "checkout-link" }],
       },
     }),
+    getQualityEngineering: vi.fn().mockResolvedValue({
+      valid: true,
+      qualityEngineering: {
+        schemaVersion: "0.3",
+        assessments: [],
+        gates: [],
+        humanDecisions: [],
+      },
+      revision: null,
+      resolvedGateStatuses: {},
+      workflowStatuses: [],
+      diagnostics: [],
+    }),
+    evaluateQuality: vi.fn(),
+    processQualityEvents: vi.fn(),
+    decideQualityGate: vi.fn(),
     analyze: vi.fn().mockResolvedValue({
       phase: "review",
       proposal: { id: "proposal-1", status: "proposed", operations: [] },
@@ -116,6 +132,60 @@ describe("WorkbenchPage", () => {
     expect(await screen.findByText("Status: applied")).toBeTruthy();
     expect(await screen.findByText("Acceptance criteria: 1")).toBeTruthy();
     expect(client.getQuality).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes and displays a failed workflow status when evaluation fails", async () => {
+    const client = api();
+    client.evaluateQuality = vi.fn().mockResolvedValue({
+      eventId: "event-quality-assessment-requested-failed-001",
+      status: "failed",
+      processed: false,
+      diagnostics: [{ code: "QUALITY_ENGINEERING_WORKFLOW_FAILED" }],
+    });
+    client.getQualityEngineering = vi
+      .fn()
+      .mockResolvedValueOnce({
+        valid: true,
+        qualityEngineering: {
+          schemaVersion: "0.3",
+          assessments: [],
+          gates: [],
+          humanDecisions: [],
+        },
+        revision: null,
+        resolvedGateStatuses: {},
+        workflowStatuses: [],
+        diagnostics: [],
+      })
+      .mockResolvedValueOnce({
+        valid: true,
+        qualityEngineering: {
+          schemaVersion: "0.3",
+          assessments: [],
+          gates: [],
+          humanDecisions: [],
+        },
+        revision: null,
+        resolvedGateStatuses: {},
+        workflowStatuses: [
+          {
+            eventId: "event-quality-assessment-requested-failed-001",
+            eventType: "quality.assessment.requested",
+            status: "failed",
+            error: "temporary failure",
+            receivedAt: "2026-09-27T08:00:00Z",
+          },
+        ],
+        diagnostics: [],
+      });
+    render(<WorkbenchPage api={client} />);
+    await screen.findByRole("heading", { name: "QA Workbench" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate project" }));
+
+    expect(await screen.findByText("Failed")).toBeTruthy();
+    expect(screen.getByText("temporary failure")).toBeTruthy();
+    expect(client.getQualityEngineering).toHaveBeenCalledTimes(2);
   });
 
   it("renders the control-room shell and navigates formal workbench views", async () => {

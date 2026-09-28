@@ -1,27 +1,37 @@
-import { resolve } from "node:path";
+import { randomUUID } from "node:crypto";
+import { join, resolve } from "node:path";
 
 import {
   EvidenceImportService,
   EvidenceVerifyService,
+  FileHumanDecisionService,
+  RuleBasedQualityAssessmentProvider,
+  SqliteDomainEventPublisher,
+  SqliteQualityEngineeringWorkflow,
   createMockRequirementAnalysisProvider,
   runRequirementAnalysis,
   type EvidenceImporter,
   type EvidenceVerifier,
+  type HumanDecisionService,
+  type QualityEngineeringWorkflow,
 } from "@ai-native-qa-workbench/application";
 import {
   createEvidenceAdapterRegistry,
   normalizeEvidenceFormat,
 } from "@ai-native-qa-workbench/evidence";
-import type { EvidenceFormat } from "@ai-native-qa-workbench/domain";
+import type { DomainEvent, EvidenceFormat } from "@ai-native-qa-workbench/domain";
 import {
   FileEvidenceStore,
+  FileQualityEngineeringStore,
   PROJECT_FILE_RELATIVE_PATH,
   FileProjectStore,
   type EvidenceArtifactStore,
   type EvidenceStore,
   type ProjectStore,
+  type QualityEngineeringStore,
   type StoreDiagnostic,
 } from "@ai-native-qa-workbench/project-store";
+import { SqliteRuntimeStore, type RuntimeStore } from "@ai-native-qa-workbench/runtime-store";
 
 const USAGE = [
   "Usage:",
@@ -32,6 +42,10 @@ const USAGE = [
   "  qaw analyze <requirement-id> [directory]",
   "  qaw evidence import <report-file> --format junit|playwright|pytest [--run-id <id>] [directory]",
   "  qaw evidence verify [directory]",
+  "  qaw quality validate [directory]",
+  "  qaw quality evaluate [directory] [--requirement-id <id>]",
+  "  qaw quality process [directory]",
+  "  qaw quality decide <gate-id> --decision approve|reject|waive --reviewer <id> --rationale <text> [directory]",
 ].join("\n");
 
 interface Output {
@@ -44,6 +58,11 @@ export interface CliDependencies {
   evidenceStore?: EvidenceStore & EvidenceArtifactStore;
   evidenceImporter?: EvidenceImporter;
   evidenceVerifier?: EvidenceVerifier;
+  qualityEngineeringStore?: QualityEngineeringStore;
+  runtimeStore?: RuntimeStore;
+  workflow?: QualityEngineeringWorkflow;
+  humanDecisionService?: HumanDecisionService;
+  clock?: () => string;
   stdout?: Output;
   stderr?: Output;
 }
@@ -103,6 +122,31 @@ interface EvidenceVerifyOptions {
   directory?: string;
 }
 
+interface QualityValidateOptions {
+  command: "quality-validate";
+  directory?: string;
+}
+
+interface QualityEvaluateOptions {
+  command: "quality-evaluate";
+  directory?: string;
+  requirementId?: string;
+}
+
+interface QualityProcessOptions {
+  command: "quality-process";
+  directory?: string;
+}
+
+interface QualityDecideOptions {
+  command: "quality-decide";
+  gateId: string;
+  decision: "approve" | "reject" | "waive";
+  reviewer: string;
+  rationale: string;
+  directory?: string;
+}
+
 type ParsedOptions =
   | InitOptions
   | ValidateOptions
@@ -110,7 +154,11 @@ type ParsedOptions =
   | OpenOptions
   | AnalyzeOptions
   | EvidenceImportOptions
-  | EvidenceVerifyOptions;
+  | EvidenceVerifyOptions
+  | QualityValidateOptions
+  | QualityEvaluateOptions
+  | QualityProcessOptions
+  | QualityDecideOptions;
 
 function parseError(message: string): CliArgumentError {
   return new CliArgumentError(message);
@@ -214,10 +262,113 @@ function parseEvidenceOptions(tokens: string[]): EvidenceImportOptions | Evidenc
   return options;
 }
 
+function parseQualityOptions(
+  tokens: string[],
+): QualityValidateOptions | QualityEvaluateOptions | QualityProcessOptions | QualityDecideOptions {
+  const [subcommand, ...argumentsList] = tokens;
+  if (
+    subcommand !== "validate" &&
+    subcommand !== "evaluate" &&
+    subcommand !== "process" &&
+    subcommand !== "decide"
+  ) {
+    throw parseError(`Unknown quality subcommand: ${subcommand ?? ""}.`);
+  }
+
+  if (subcommand === "validate" || subcommand === "process") {
+    let directory: string | undefined;
+    for (const token of argumentsList) {
+      if (token.startsWith("--")) throw parseError(`Unknown quality option: ${token}.`);
+      if (directory !== undefined) throw parseError("Only one directory may be provided.");
+      directory = token;
+    }
+    return subcommand === "validate"
+      ? { command: "quality-validate", ...(directory !== undefined ? { directory } : {}) }
+      : { command: "quality-process", ...(directory !== undefined ? { directory } : {}) };
+  }
+
+  if (subcommand === "evaluate") {
+    let directory: string | undefined;
+    let requirementId: string | undefined;
+    for (let index = 0; index < argumentsList.length; index += 1) {
+      const token = argumentsList[index];
+      if (token === undefined) continue;
+      if (token === "--requirement-id") {
+        requirementId = requireOptionValue(argumentsList, index, token);
+        index += 1;
+        continue;
+      }
+      if (token === "--ai-approve" || token === "--trusted") {
+        throw parseError(`${token} is not supported by quality commands.`);
+      }
+      if (token.startsWith("--")) throw parseError(`Unknown quality option: ${token}.`);
+      if (directory !== undefined) throw parseError("Only one directory may be provided.");
+      directory = token;
+    }
+    return {
+      command: "quality-evaluate",
+      ...(directory !== undefined ? { directory } : {}),
+      ...(requirementId !== undefined ? { requirementId } : {}),
+    };
+  }
+
+  let gateId: string | undefined;
+  let decision: QualityDecideOptions["decision"] | undefined;
+  let reviewer: string | undefined;
+  let rationale: string | undefined;
+  let directory: string | undefined;
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const token = argumentsList[index];
+    if (token === undefined) continue;
+    if (token === "--decision") {
+      const value = requireOptionValue(argumentsList, index, token);
+      if (value !== "approve" && value !== "reject" && value !== "waive") {
+        throw parseError(`Unsupported quality decision: ${value}.`);
+      }
+      decision = value;
+      index += 1;
+      continue;
+    }
+    if (token === "--reviewer") {
+      reviewer = requireOptionValue(argumentsList, index, token);
+      index += 1;
+      continue;
+    }
+    if (token === "--rationale") {
+      rationale = requireOptionValue(argumentsList, index, token);
+      index += 1;
+      continue;
+    }
+    if (token === "--ai-approve" || token === "--trusted") {
+      throw parseError(`${token} is not supported by quality commands.`);
+    }
+    if (token.startsWith("--")) throw parseError(`Unknown quality option: ${token}.`);
+    if (gateId === undefined) {
+      gateId = token;
+      continue;
+    }
+    if (directory !== undefined) throw parseError("Only one directory may be provided.");
+    directory = token;
+  }
+  if (!gateId) throw parseError("Gate id is required for quality decide.");
+  if (!decision) throw parseError("Decision is required for quality decide.");
+  if (!reviewer) throw parseError("Reviewer is required for quality decide.");
+  if (!rationale) throw parseError("Rationale is required for quality decide.");
+  return {
+    command: "quality-decide",
+    gateId,
+    decision,
+    reviewer,
+    rationale,
+    ...(directory !== undefined ? { directory } : {}),
+  };
+}
+
 function parseOptions(argv: string[]): ParsedOptions {
   const [command, ...tokens] = argv;
 
   if (command === "evidence") return parseEvidenceOptions(tokens);
+  if (command === "quality") return parseQualityOptions(tokens);
 
   if (
     command !== "init" &&
@@ -339,6 +490,24 @@ function writeDiagnostics(diagnostics: readonly StoreDiagnostic[], stderr: Outpu
   }
 }
 
+function writeJson(value: unknown, stdout: Output): void {
+  stdout.write(`${JSON.stringify(value)}\n`);
+}
+
+function qualityEngineeringStoreFor(
+  dependencies: CliDependencies,
+  store: ProjectStore,
+  evidenceStore: EvidenceStore & EvidenceArtifactStore,
+): QualityEngineeringStore {
+  return (
+    dependencies.qualityEngineeringStore ?? new FileQualityEngineeringStore(store, evidenceStore)
+  );
+}
+
+function runtimeDatabasePath(rootDirectory: string): string {
+  return join(rootDirectory, ".ai-qa", "runtime.db");
+}
+
 export async function runCli(argv: string[], dependencies: CliDependencies = {}): Promise<number> {
   const stdout = dependencies.stdout ?? process.stdout;
   const stderr = dependencies.stderr ?? process.stderr;
@@ -380,13 +549,18 @@ export async function runCli(argv: string[], dependencies: CliDependencies = {})
 
   if (options.command === "evidence-import") {
     const evidenceStore = dependencies.evidenceStore ?? new FileEvidenceStore();
+    let runtimeStore = dependencies.runtimeStore;
     const importer =
       dependencies.evidenceImporter ??
-      new EvidenceImportService({
-        projectStore: store,
-        evidenceStore,
-        adapters: createEvidenceAdapterRegistry(),
-      });
+      (() => {
+        runtimeStore ??= new SqliteRuntimeStore(runtimeDatabasePath(rootDirectory));
+        return new EvidenceImportService({
+          projectStore: store,
+          evidenceStore,
+          adapters: createEvidenceAdapterRegistry(),
+          publisher: new SqliteDomainEventPublisher({ runtimeStore }),
+        });
+      })();
     try {
       const result = await importer.import({
         rootDirectory,
@@ -413,6 +587,8 @@ export async function runCli(argv: string[], dependencies: CliDependencies = {})
     } catch (error) {
       stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
       return 1;
+    } finally {
+      runtimeStore?.close();
     }
   }
 
@@ -436,15 +612,116 @@ export async function runCli(argv: string[], dependencies: CliDependencies = {})
     return 0;
   }
 
+  if (options.command === "quality-validate") {
+    const evidenceStore = dependencies.evidenceStore ?? new FileEvidenceStore();
+    const qualityEngineeringStore = qualityEngineeringStoreFor(dependencies, store, evidenceStore);
+    const result = await qualityEngineeringStore.validateQualityEngineering(rootDirectory);
+    if (!result.valid) {
+      writeDiagnostics(result.diagnostics, stderr);
+      return 1;
+    }
+    writeJson(result, stdout);
+    return 0;
+  }
+
+  if (options.command === "quality-evaluate" || options.command === "quality-process") {
+    const evidenceStore = dependencies.evidenceStore ?? new FileEvidenceStore();
+    const qualityEngineeringStore = qualityEngineeringStoreFor(dependencies, store, evidenceStore);
+    let runtimeStore = dependencies.runtimeStore;
+    let workflow = dependencies.workflow;
+    if (!workflow) {
+      runtimeStore ??= new SqliteRuntimeStore(runtimeDatabasePath(rootDirectory));
+      workflow = new SqliteQualityEngineeringWorkflow({
+        projectStore: store,
+        evidenceStore,
+        qualityEngineeringStore,
+        runtimeStore,
+        assessmentProvider: new RuleBasedQualityAssessmentProvider(),
+        ...(dependencies.clock ? { clock: dependencies.clock } : {}),
+      });
+    }
+    try {
+      if (options.command === "quality-evaluate") {
+        const clock = dependencies.clock ?? (() => new Date().toISOString());
+        const event: DomainEvent = {
+          id: `event-quality-assessment-requested-${randomUUID()}`,
+          schemaVersion: "0.3",
+          type: "quality.assessment.requested",
+          aggregateType: "project",
+          aggregateId: "project",
+          occurredAt: clock(),
+          source: "application",
+          payload: {
+            projectRoot: rootDirectory,
+            target: options.requirementId
+              ? { type: "requirement", id: options.requirementId }
+              : { type: "project" },
+            gateKind: options.requirementId ? "requirement-readiness" : "release-readiness",
+          },
+        };
+        const result = await workflow.dispatch(event);
+        writeJson(result, stdout);
+        return result.processed ? 0 : 1;
+      }
+      const results = await workflow.processPending({ projectRoot: rootDirectory });
+      writeJson(results, stdout);
+      return results.every((result) => result.processed) ? 0 : 1;
+    } catch (error) {
+      stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      return 1;
+    } finally {
+      runtimeStore?.close();
+    }
+  }
+
+  if (options.command === "quality-decide") {
+    const evidenceStore = dependencies.evidenceStore ?? new FileEvidenceStore();
+    const qualityEngineeringStore = qualityEngineeringStoreFor(dependencies, store, evidenceStore);
+    let runtimeStore = dependencies.runtimeStore;
+    let humanDecisionService = dependencies.humanDecisionService;
+    if (!humanDecisionService) {
+      runtimeStore ??= new SqliteRuntimeStore(runtimeDatabasePath(rootDirectory));
+      humanDecisionService = new FileHumanDecisionService({
+        projectStore: store,
+        evidenceStore,
+        qualityEngineeringStore,
+        publisher: new SqliteDomainEventPublisher({ runtimeStore }),
+        ...(dependencies.clock ? { clock: dependencies.clock } : {}),
+      });
+    }
+    try {
+      const current = await qualityEngineeringStore.readQualityEngineering(rootDirectory);
+      const result = await humanDecisionService.record({
+        rootDirectory,
+        gateId: options.gateId,
+        decision: options.decision,
+        reviewer: options.reviewer,
+        rationale: options.rationale,
+        expectedRevision: current.revision,
+      });
+      writeJson(result, stdout);
+      return result.written && result.diagnostics.length === 0 ? 0 : 1;
+    } catch (error) {
+      stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      return 1;
+    } finally {
+      runtimeStore?.close();
+    }
+  }
+
   if (options.command === "doctor") {
     const evidenceStore = dependencies.evidenceStore ?? new FileEvidenceStore();
+    const qualityEngineeringStore = qualityEngineeringStoreFor(dependencies, store, evidenceStore);
     const project = await store.validateProject(rootDirectory);
     const quality = await store.validateQuality(rootDirectory);
     const evidence = await evidenceStore.validateEvidence(rootDirectory);
+    const qualityEngineering =
+      await qualityEngineeringStore.validateQualityEngineering(rootDirectory);
     if (!project.valid) writeDiagnostics(project.diagnostics, stderr);
     if (!quality.valid) writeDiagnostics(quality.diagnostics, stderr);
     if (!evidence.valid) writeDiagnostics(evidence.diagnostics, stderr);
-    if (!project.valid || !quality.valid || !evidence.valid) return 1;
+    if (!qualityEngineering.valid) writeDiagnostics(qualityEngineering.diagnostics, stderr);
+    if (!project.valid || !quality.valid || !evidence.valid || !qualityEngineering.valid) return 1;
 
     const verifier = dependencies.evidenceVerifier ?? new EvidenceVerifyService({ evidenceStore });
     const result = await verifier.verify(rootDirectory);
@@ -452,7 +729,7 @@ export async function runCli(argv: string[], dependencies: CliDependencies = {})
       writeDiagnostics(result.diagnostics, stderr);
       return 1;
     }
-    stdout.write("Doctor passed: project, quality, and evidence are valid.\n");
+    stdout.write("Doctor passed: project, quality, evidence, and quality engineering are valid.\n");
     return 0;
   }
 
@@ -514,6 +791,14 @@ export async function runCli(argv: string[], dependencies: CliDependencies = {})
   const evidence = await evidenceStore.validateEvidence(rootDirectory);
   if (!evidence.valid) {
     writeDiagnostics(evidence.diagnostics, stderr);
+    return 1;
+  }
+
+  const qualityEngineeringStore = qualityEngineeringStoreFor(dependencies, store, evidenceStore);
+  const qualityEngineering =
+    await qualityEngineeringStore.validateQualityEngineering(rootDirectory);
+  if (!qualityEngineering.valid) {
+    writeDiagnostics(qualityEngineering.diagnostics, stderr);
     return 1;
   }
 
