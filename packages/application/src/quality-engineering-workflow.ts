@@ -143,24 +143,22 @@ function targetFromEvent(event: DomainEvent): TriggerContext {
     const requirementIds = event.payload.requirementIds;
     if (
       !Array.isArray(requirementIds) ||
+      requirementIds.length !== 1 ||
       requirementIds.some((id) => typeof id !== "string" || id.length === 0)
     ) {
       throw new WorkflowFailure([
         diagnostic(
           "DOMAIN_EVENT_PAYLOAD_INVALID",
           "payload.requirementIds",
-          "Proposal event requirementIds must be an array of non-empty strings.",
+          "Proposal event requirementIds must contain exactly one non-empty string.",
         ),
       ]);
     }
-    const requirementId = requirementIds[0];
-    return requirementId
-      ? {
-          projectRoot,
-          target: { type: "requirement", id: requirementId },
-          gateKind: "requirement-readiness",
-        }
-      : { projectRoot, target: { type: "project" }, gateKind: "release-readiness" };
+    return {
+      projectRoot,
+      target: { type: "requirement", id: requirementIds[0]! },
+      gateKind: "requirement-readiness",
+    };
   }
 
   const testRunId = event.payload.testRunId;

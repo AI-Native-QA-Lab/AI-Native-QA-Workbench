@@ -165,9 +165,10 @@ targets, unknown decisions, missing reviewers, missing rationales, and stale
 revisions.
 
 The Workbench Quality Engineering panel shows Assessment evidence references,
-Gate outcome, derived status, and a bilingual reviewer/rationale form. It can
-submit an explicit HumanDecision but has no automatic approval control. UI
-locale and AI output locale remain independent.
+Gate outcome, derived status, the latest Runtime Workflow status (`pending`,
+`running`, `completed`, or `failed`), and a bilingual reviewer/rationale form.
+It can submit an explicit HumanDecision but has no automatic approval control.
+UI locale and AI output locale remain independent.
 
 ## Compatibility
 

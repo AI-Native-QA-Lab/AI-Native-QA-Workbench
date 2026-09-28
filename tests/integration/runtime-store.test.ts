@@ -146,6 +146,66 @@ describe("SqliteRuntimeStore", () => {
     reopened.close();
   });
 
+  it("lists quality workflow statuses for the workbench", async () => {
+    const directory = await createTemporaryDirectory();
+    const runtime = new SqliteRuntimeStore(join(directory, "runtime.db"));
+    const event: DomainEvent = {
+      id: "event-quality-assessment-requested-status-001",
+      schemaVersion: "0.3",
+      type: "quality.assessment.requested",
+      aggregateType: "project",
+      aggregateId: "checkout-service",
+      occurredAt: "2026-09-27T08:00:00Z",
+      source: "application",
+      payload: {
+        projectRoot: directory,
+        target: { type: "project" },
+        gateKind: "release-readiness",
+      },
+    };
+
+    runtime.appendDomainEvent(event, directory);
+    expect(runtime.listWorkflowStatuses(directory)).toMatchObject([
+      { eventId: event.id, eventType: event.type, status: "pending" },
+    ]);
+
+    const sessionId = runtime.createSession({ projectRoot: directory, uiLocale: "en" });
+    const runId = runtime.appendRun({ sessionId, kind: "quality-engineering" });
+    const workflowId = runtime.appendWorkflowRun({
+      runId,
+      kind: "quality-engineering",
+      workflowKind: "quality-engineering",
+      triggerEventId: event.id,
+      status: "running",
+    });
+    expect(runtime.listWorkflowStatuses(directory)).toMatchObject([
+      { eventId: event.id, status: "running", workflowRunId: workflowId },
+    ]);
+
+    runtime.updateWorkflowRun(workflowId, {
+      status: "completed",
+      completedAt: "2026-09-27T08:03:00Z",
+    });
+    runtime.markDomainEventProcessed(event.id, "2026-09-27T08:03:00Z");
+    expect(runtime.listWorkflowStatuses(directory)).toMatchObject([
+      { eventId: event.id, status: "completed" },
+    ]);
+
+    const failedEvent = { ...event, id: "event-quality-assessment-requested-status-002" };
+    runtime.appendDomainEvent(failedEvent, directory);
+    runtime.markDomainEventFailed(failedEvent.id, "temporary failure", "2026-09-27T08:04:00Z");
+    expect(runtime.listWorkflowStatuses(directory)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventId: failedEvent.id,
+          status: "failed",
+          error: "temporary failure",
+        }),
+      ]),
+    );
+    runtime.close();
+  });
+
   it("deduplicates workflow runs by trigger event and kind and preserves ordered steps", async () => {
     const directory = await createTemporaryDirectory();
     const runtime = new SqliteRuntimeStore(join(directory, "runtime.db"));

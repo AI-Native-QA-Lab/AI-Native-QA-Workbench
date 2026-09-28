@@ -54,7 +54,7 @@ null、数组和普通对象；函数、symbol、bigint、类实例、非有限�
 | Event | Source | Aggregate | 必填 payload | Workflow 作用 |
 | --- | --- | --- | --- | --- |
 | `quality.assessment.requested` | `application` | `project` | `projectRoot`、`target`、`gateKind` | 启动显式的项目、Requirement 或 TestRun 评估。 |
-| `quality.proposal.applied` | `application` | `quality` | `projectRoot`、`qualityRevision`、`requirementIds` | 重新评估受影响的质量目标。 |
+| `quality.proposal.applied` | `application` | `quality` | `projectRoot`、`qualityRevision`、`requirementIds` | 重新评估受影响的质量目标。Application publisher 会为每个受影响的 Requirement 发布一个事件，因此该数组恰好包含一个 ID。 |
 | `evidence.imported` | `application` | `evidence` | `projectRoot`、`evidenceRevision`、`testRunId`、`evidenceId` | 评估导入的 TestRun。 |
 | `quality.assessment.created` | `workflow` | `assessment` | `projectRoot`、`assessmentId`、`target`、`verdict` | Assessment 成功持久化后的审计事件。 |
 | `quality.gate.evaluated` | `workflow` | `gate` | `projectRoot`、`gateId`、`assessmentId`、`outcome` | Gate 成功持久化后的审计事件。 |

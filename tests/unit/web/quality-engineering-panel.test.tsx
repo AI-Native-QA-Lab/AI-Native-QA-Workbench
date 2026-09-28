@@ -41,6 +41,7 @@ const baseState: QualityEngineeringView = {
     humanDecisions: [],
   },
   resolvedGateStatuses: { "gate-project": "pending" as const },
+  workflowStatuses: [],
   diagnostics: [],
 };
 
@@ -133,5 +134,50 @@ describe("QualityEngineeringPanel", () => {
     );
 
     expect(screen.getAllByText(/暂无/)).toHaveLength(2);
+  });
+
+  it("localizes target, verdict, and runtime workflow statuses", () => {
+    render(
+      <QualityEngineeringPanel
+        locale="zh-CN"
+        state={{
+          ...baseState,
+          workflowStatuses: [
+            {
+              eventId: "event-quality-assessment-requested-001",
+              eventType: "quality.assessment.requested",
+              status: "running",
+              receivedAt: "2026-09-27T08:00:00Z",
+            },
+          ],
+          qualityEngineering: {
+            ...baseState.qualityEngineering!,
+            assessments: [
+              {
+                ...baseState.qualityEngineering!.assessments[0]!,
+                target: { type: "requirement", id: "checkout" },
+                verdict: "insufficient-evidence",
+              },
+            ],
+            gates: [
+              {
+                ...baseState.qualityEngineering!.gates[0]!,
+                target: { type: "requirement", id: "checkout" },
+              },
+            ],
+          },
+        }}
+        t={(key) => translate("zh-CN", key)}
+        onEvaluate={vi.fn()}
+        onDecision={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("需求就绪度: checkout")).toBeTruthy();
+    expect(screen.getByText("证据不足")).toBeTruthy();
+    expect(screen.getByText("运行中")).toBeTruthy();
+    expect(screen.queryByText("requirement: checkout")).toBeNull();
+    expect(screen.queryByText("insufficient-evidence")).toBeNull();
+    expect(screen.queryByText("running")).toBeNull();
   });
 });

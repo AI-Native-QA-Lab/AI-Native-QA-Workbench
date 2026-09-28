@@ -66,6 +66,15 @@ export interface RuntimeWorkflowRun {
 export type RuntimeDomainEventStatus = "pending" | "processed" | "failed";
 export type RuntimeWorkflowStatus = "pending" | "running" | "completed" | "failed";
 
+export interface RuntimeWorkflowStatusRecord {
+  eventId: string;
+  eventType: DomainEvent["type"];
+  status: RuntimeWorkflowStatus;
+  workflowRunId?: string;
+  error?: string;
+  receivedAt: string;
+}
+
 export interface RuntimeDomainEventRecord {
   id: string;
   projectRoot: string;
@@ -111,6 +120,7 @@ export interface RuntimeStore {
   appendDomainEvent(event: DomainEvent, projectRoot: string): string;
   getDomainEvent(id: string): RuntimeDomainEventRecord | undefined;
   listPendingDomainEvents(projectRoot: string): RuntimeDomainEventRecord[];
+  listWorkflowStatuses(projectRoot: string): RuntimeWorkflowStatusRecord[];
   markDomainEventProcessed(eventId: string, processedAt: string): void;
   markDomainEventFailed(eventId: string, error: string, failedAt: string): void;
   findWorkflowRun(input: { triggerEventId: string; kind: string }): RuntimeWorkflowRun | undefined;
@@ -153,6 +163,33 @@ interface WorkflowRunRow {
   workflow_kind?: string | null;
   error?: string | null;
   completed_at?: string | null;
+}
+
+interface WorkflowStatusRow {
+  event_id: string;
+  event_json: string;
+  event_status: RuntimeDomainEventStatus;
+  received_at: string;
+  event_error?: string | null;
+  workflow_run_id?: string | null;
+  workflow_status?: string | null;
+  workflow_error?: string | null;
+}
+
+const workflowTriggerEventTypes: ReadonlySet<DomainEvent["type"]> = new Set([
+  "quality.assessment.requested",
+  "quality.proposal.applied",
+  "evidence.imported",
+]);
+
+function isRuntimeWorkflowStatus(value: string | null | undefined): value is RuntimeWorkflowStatus {
+  return value === "pending" || value === "running" || value === "completed" || value === "failed";
+}
+
+function statusFromDomainEvent(status: RuntimeDomainEventStatus): RuntimeWorkflowStatus {
+  if (status === "pending") return "pending";
+  if (status === "failed") return "failed";
+  return "completed";
 }
 
 function mapWorkflowRun(row: WorkflowRunRow): RuntimeWorkflowRun {
@@ -341,6 +378,55 @@ export class SqliteRuntimeStore implements RuntimeStore {
     return rows
       .map((row) => this.getDomainEvent(row.id))
       .filter((record): record is RuntimeDomainEventRecord => record !== undefined);
+  }
+
+  listWorkflowStatuses(projectRoot: string): RuntimeWorkflowStatusRecord[] {
+    const rows = this.database
+      .prepare(
+        `SELECT
+           de.id AS event_id,
+           de.event_json,
+           de.status AS event_status,
+           de.received_at,
+           de.error AS event_error,
+           wr.id AS workflow_run_id,
+           wr.status AS workflow_status,
+           wr.error AS workflow_error
+         FROM domain_events AS de
+         LEFT JOIN workflow_runs AS wr
+           ON wr.trigger_event_id = de.id
+          AND wr.workflow_kind = 'quality-engineering'
+         WHERE de.project_root = ?
+         ORDER BY de.received_at DESC, de.id DESC`,
+      )
+      .all(projectRoot) as WorkflowStatusRow[];
+
+    return rows.flatMap((row) => {
+      const event = parsePayload(row.event_json);
+      if (
+        event === null ||
+        typeof event !== "object" ||
+        Array.isArray(event) ||
+        !workflowTriggerEventTypes.has((event as DomainEvent).type)
+      ) {
+        return [];
+      }
+      const eventType = (event as DomainEvent).type;
+      const status = isRuntimeWorkflowStatus(row.workflow_status)
+        ? row.workflow_status
+        : statusFromDomainEvent(row.event_status);
+      const error = row.workflow_error ?? row.event_error;
+      return [
+        {
+          eventId: row.event_id,
+          eventType,
+          status,
+          ...(row.workflow_run_id ? { workflowRunId: row.workflow_run_id } : {}),
+          ...(error ? { error } : {}),
+          receivedAt: row.received_at,
+        },
+      ];
+    });
   }
 
   markDomainEventProcessed(eventId: string, processedAt: string): void {

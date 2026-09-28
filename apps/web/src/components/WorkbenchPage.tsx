@@ -88,6 +88,11 @@ export function WorkbenchPage(props: { api: WorkbenchApi; initialUiLocale?: UiLo
       if (!result.processed) throw new Error(t("qualityEngineeringFailed"));
       await refreshQualityEngineering();
     } catch {
+      try {
+        await refreshQualityEngineering();
+      } catch {
+        // Keep the operation error visible even when the status refresh also fails.
+      }
       setError(t("qualityEngineeringFailed"));
     }
   }

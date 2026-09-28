@@ -142,6 +142,7 @@ describe("local Fastify server", () => {
         gates: [expect.objectContaining({ outcome: "insufficient-evidence" })],
       },
       resolvedGateStatuses: expect.objectContaining({}),
+      workflowStatuses: [expect.objectContaining({ status: "completed" })],
     });
     expect(processed.statusCode).toBe(200);
     expect(processed.json()).toEqual([]);

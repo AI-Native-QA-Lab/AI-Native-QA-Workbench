@@ -1,5 +1,6 @@
 import type {
   AssessmentVerdict,
+  DomainEventType,
   HumanDecision,
   HumanDecisionType,
   QualityEngineeringSnapshot,
@@ -35,11 +36,23 @@ export interface DecisionView {
   phase?: string;
 }
 
+export type QualityWorkflowStatus = "pending" | "running" | "completed" | "failed";
+
+export interface QualityWorkflowStatusView {
+  eventId: string;
+  eventType: DomainEventType;
+  status: QualityWorkflowStatus;
+  workflowRunId?: string;
+  error?: string;
+  receivedAt: string;
+}
+
 export interface QualityEngineeringView {
   valid: boolean;
   qualityEngineering?: QualityEngineeringSnapshot;
   revision: string | null;
   resolvedGateStatuses: Record<string, ResolvedGateStatus>;
+  workflowStatuses: QualityWorkflowStatusView[];
   diagnostics: Array<Record<string, unknown>>;
 }
 

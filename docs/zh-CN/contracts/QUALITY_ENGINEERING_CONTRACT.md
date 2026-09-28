@@ -150,8 +150,9 @@ qaw quality decide <gate-id> --decision approve|reject|waive \
 未知 decision、缺少 reviewer、缺少 rationale 和过期 revision。
 
 Workbench 的 Quality Engineering panel 展示 Assessment 的 Evidence 引用、Gate
-outcome、推导状态和双语 reviewer/rationale 表单。它可以提交显式 HumanDecision，
-但没有自动批准控件。UI locale 与 AI output locale 保持独立。
+outcome、推导状态、最新 Runtime Workflow 状态（`pending`、`running`、`completed` 或
+`failed`）和双语 reviewer/rationale 表单。它可以提交显式 HumanDecision，但没有自动
+批准控件。UI locale 与 AI output locale 保持独立。
 
 ## 兼容性
 

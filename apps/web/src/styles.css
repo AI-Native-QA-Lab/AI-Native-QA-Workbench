@@ -489,6 +489,36 @@ textarea:focus-visible {
   border-color: var(--action);
 }
 
+.qe-workflow-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 10px 12px;
+  color: var(--muted);
+  background: rgba(247, 250, 251, 0.92);
+  border: 1px solid #dce5e9;
+  border-radius: 8px;
+  font-size: 0.72rem;
+}
+
+.qe-workflow-status strong {
+  color: var(--navy);
+}
+
+.qe-workflow-status p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--danger);
+  line-height: 1.4;
+}
+
+.qe-workflow-failed {
+  border-color: #e7b9b9;
+  background: var(--danger-soft);
+}
+
 .qe-empty-state {
   display: flex;
   align-items: center;

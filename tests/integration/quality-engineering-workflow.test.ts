@@ -348,6 +348,16 @@ describe("SqliteQualityEngineeringWorkflow", () => {
       "payload.qualityRevision",
     ],
     [
+      "quality.proposal.applied",
+      { qualityRevision: "a".repeat(64), requirementIds: [] },
+      "payload.requirementIds",
+    ],
+    [
+      "quality.proposal.applied",
+      { qualityRevision: "a".repeat(64), requirementIds: ["checkout", "login"] },
+      "payload.requirementIds",
+    ],
+    [
       "evidence.imported",
       { evidenceRevision: "invalid", testRunId: "run-checkout", evidenceId: "evidence-checkout" },
       "payload.evidenceRevision",

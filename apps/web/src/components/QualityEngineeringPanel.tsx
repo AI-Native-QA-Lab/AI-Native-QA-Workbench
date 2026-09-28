@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-import type { HumanDecisionType, QualityTarget } from "@ai-native-qa-workbench/domain";
+import type {
+  AssessmentVerdict,
+  HumanDecisionType,
+  QualityTarget,
+} from "@ai-native-qa-workbench/domain";
 
 import type { QualityEngineeringView } from "../api.js";
 import type { MessageKey, UiLocale } from "../i18n.js";
@@ -36,9 +40,31 @@ const outcomeKeys: Record<string, MessageKey> = {
   "insufficient-evidence": "gateOutcomeInsufficientEvidence",
 };
 
+const targetTypeKeys: Record<Exclude<QualityTarget["type"], "project">, MessageKey> = {
+  requirement: "requirementTarget",
+  "test-run": "testRunTarget",
+};
+
+const verdictKeys: Record<AssessmentVerdict, MessageKey> = {
+  pass: "assessmentVerdictPass",
+  warn: "assessmentVerdictWarn",
+  fail: "assessmentVerdictFail",
+  "insufficient-evidence": "assessmentVerdictInsufficientEvidence",
+};
+
+const workflowStatusKeys: Record<
+  QualityEngineeringView["workflowStatuses"][number]["status"],
+  MessageKey
+> = {
+  pending: "workflowPending",
+  running: "workflowRunning",
+  completed: "workflowCompleted",
+  failed: "workflowFailed",
+};
+
 function targetLabel(target: QualityTarget, t: Translate): string {
   if (target.type === "project") return t("projectTarget");
-  return `${target.type}: ${target.id}`;
+  return `${t(targetTypeKeys[target.type])}: ${target.id}`;
 }
 
 function GateDecisionForm(props: {
@@ -113,6 +139,7 @@ function GateDecisionForm(props: {
 export function QualityEngineeringPanel(props: QualityEngineeringPanelProps) {
   const snapshot = props.state?.qualityEngineering;
   const gates = snapshot?.gates ?? [];
+  const latestWorkflowStatus = props.state?.workflowStatuses[0];
 
   return (
     <section className="panel qe-panel" aria-labelledby="quality-engineering-heading">
@@ -130,6 +157,14 @@ export function QualityEngineeringPanel(props: QualityEngineeringPanelProps) {
           {props.t("evaluateQuality")}
         </button>
       </div>
+
+      {latestWorkflowStatus && (
+        <div className={`qe-workflow-status qe-workflow-${latestWorkflowStatus.status}`}>
+          <span>{props.t("workflowStatus")}</span>
+          <strong>{props.t(workflowStatusKeys[latestWorkflowStatus.status])}</strong>
+          {latestWorkflowStatus.error && <p>{latestWorkflowStatus.error}</p>}
+        </div>
+      )}
 
       {!snapshot || gates.length === 0 ? (
         <div className="qe-empty-state">
@@ -161,7 +196,7 @@ export function QualityEngineeringPanel(props: QualityEngineeringPanelProps) {
                   <div className="qe-assessment-copy">
                     <div className="qe-assessment-meta">
                       <span>{props.t("assessment")}</span>
-                      <strong>{assessment.verdict}</strong>
+                      <strong>{props.t(verdictKeys[assessment.verdict])}</strong>
                     </div>
                     <p>{assessment.summary}</p>
                     <div className="qe-reference-row">

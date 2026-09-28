@@ -146,6 +146,7 @@ function diagnostic(code: StoreDiagnostic["code"], path: string, message: string
 
 function qualityEngineeringResponse(
   result: Awaited<ReturnType<QualityEngineeringStore["validateQualityEngineering"]>>,
+  workflowStatuses: ReturnType<RuntimeStore["listWorkflowStatuses"]> = [],
 ) {
   const snapshot = result.qualityEngineering;
   return {
@@ -160,6 +161,7 @@ function qualityEngineeringResponse(
           ]),
         )
       : {},
+    workflowStatuses,
     diagnostics: result.diagnostics,
   };
 }
@@ -265,7 +267,14 @@ export async function buildServer(options: ServerOptions): Promise<FastifyInstan
 
   app.get("/api/quality-engineering", async (_request, reply) => {
     const result = await qualityEngineeringStore.validateQualityEngineering(options.rootDirectory);
-    return reply.code(result.valid ? 200 : 422).send(qualityEngineeringResponse(result));
+    return reply
+      .code(result.valid ? 200 : 422)
+      .send(
+        qualityEngineeringResponse(
+          result,
+          runtimeStore?.listWorkflowStatuses(options.rootDirectory) ?? [],
+        ),
+      );
   });
 
   app.post<{ Body: unknown }>("/api/quality/evaluate", async (request, reply) => {

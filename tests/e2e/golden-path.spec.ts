@@ -25,7 +25,12 @@ test("Golden Path: load, analyze, review, apply, and refresh quality counts", as
 
   await expect(page.getByRole("heading", { name: "Quality engineering" })).toBeVisible();
   await page.getByRole("button", { name: "Evaluate project" }).click();
-  await expect(page.getByText("Insufficient evidence")).toBeVisible();
+  await expect(
+    page.locator(".qe-outcome").filter({ hasText: "Insufficient evidence" }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".qe-assessment-meta strong").filter({ hasText: "Insufficient evidence" }),
+  ).toBeVisible();
   await expect(page.getByText("Pending human decision")).toBeVisible();
 
   const gateDecision = page.locator(".qe-decision-form");
