@@ -261,12 +261,19 @@ export class EvidenceImportService implements EvidenceImporter {
           normalizedImport(parsed.testRun, evidence)
       ) {
         await this.evidenceStore.discardArtifact(staged);
+        const publicationDiagnostics = await this.publishImportedEvent({
+          rootDirectory: input.rootDirectory,
+          evidenceId: existingRecord.id,
+          testRunId: runId,
+          evidenceRevision: current.revision ?? "",
+          occurredAt: existingRecord.provenance.importedAt,
+        });
         return {
-          imported: true,
-          idempotent: true,
+          imported: publicationDiagnostics.length === 0,
+          idempotent: publicationDiagnostics.length === 0,
           testRunId: runId,
           evidenceId: existingRecord.id,
-          diagnostics: [],
+          diagnostics: publicationDiagnostics,
         };
       }
       await this.evidenceStore.discardArtifact(staged);
@@ -323,21 +330,22 @@ export class EvidenceImportService implements EvidenceImporter {
     const reloaded = await this.evidenceStore.validateEvidence(input.rootDirectory);
     if (!reloaded.valid) return failure(reloaded.diagnostics);
 
-    await this.publisher?.publish({
-      id: `event-evidence-imported-${evidenceId}`,
-      schemaVersion: "0.3",
-      type: "evidence.imported",
-      aggregateType: "evidence",
-      aggregateId: evidenceId,
+    const publicationDiagnostics = await this.publishImportedEvent({
+      rootDirectory: input.rootDirectory,
+      evidenceId,
+      testRunId: runId,
+      evidenceRevision: reloaded.revision ?? written.revision ?? current.revision ?? "",
       occurredAt: importedAt,
-      source: "application",
-      payload: {
-        projectRoot: input.rootDirectory,
-        evidenceRevision: reloaded.revision ?? written.revision ?? current.revision ?? "",
+    });
+    if (publicationDiagnostics.length > 0) {
+      return {
+        imported: false,
+        idempotent: false,
         testRunId: runId,
         evidenceId,
-      },
-    });
+        diagnostics: publicationDiagnostics,
+      };
+    }
 
     return {
       imported: true,
@@ -346,5 +354,40 @@ export class EvidenceImportService implements EvidenceImporter {
       evidenceId,
       diagnostics: [],
     };
+  }
+
+  private async publishImportedEvent(input: {
+    rootDirectory: string;
+    evidenceId: string;
+    testRunId: string;
+    evidenceRevision: string;
+    occurredAt: string;
+  }): Promise<readonly StoreDiagnostic[]> {
+    try {
+      await this.publisher?.publish({
+        id: `event-evidence-imported-${input.evidenceId}`,
+        schemaVersion: "0.3",
+        type: "evidence.imported",
+        aggregateType: "evidence",
+        aggregateId: input.evidenceId,
+        occurredAt: input.occurredAt,
+        source: "application",
+        payload: {
+          projectRoot: input.rootDirectory,
+          evidenceRevision: input.evidenceRevision,
+          testRunId: input.testRunId,
+          evidenceId: input.evidenceId,
+        },
+      });
+      return [];
+    } catch (error) {
+      return [
+        diagnostic(
+          "QUALITY_ENGINEERING_WORKFLOW_FAILED",
+          "event",
+          error instanceof Error ? error.message : String(error),
+        ),
+      ];
+    }
   }
 }

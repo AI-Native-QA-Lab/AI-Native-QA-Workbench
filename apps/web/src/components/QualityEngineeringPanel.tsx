@@ -166,10 +166,12 @@ export function QualityEngineeringPanel(props: QualityEngineeringPanelProps) {
                     <p>{assessment.summary}</p>
                     <div className="qe-reference-row">
                       <span>
-                        {props.t("reasonCodes")}: {assessment.reasonCodes.join(", ") || "—"}
+                        {props.t("reasonCodes")}:{" "}
+                        {assessment.reasonCodes.join(", ") || props.t("notAvailable")}
                       </span>
                       <span>
-                        {props.t("evidenceRefs")}: {assessment.evidenceIds.join(", ") || "—"}
+                        {props.t("evidenceRefs")}:{" "}
+                        {assessment.evidenceIds.join(", ") || props.t("notAvailable")}
                       </span>
                     </div>
                   </div>

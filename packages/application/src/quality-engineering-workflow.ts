@@ -75,6 +75,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isSha256Revision(value: unknown): value is string {
+  return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
+}
+
+function isKebabCaseId(value: unknown): value is string {
+  return typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
 function projectRootFromEvent(event: DomainEvent): string | undefined {
   if (!isRecord(event.payload)) return undefined;
   const projectRoot = event.payload.projectRoot;
@@ -123,6 +131,15 @@ function targetFromEvent(event: DomainEvent): TriggerContext {
   }
 
   if (event.type === "quality.proposal.applied") {
+    if (!isSha256Revision(event.payload.qualityRevision)) {
+      throw new WorkflowFailure([
+        diagnostic(
+          "DOMAIN_EVENT_PAYLOAD_INVALID",
+          "payload.qualityRevision",
+          "Proposal event qualityRevision must be a lowercase SHA-256 revision.",
+        ),
+      ]);
+    }
     const requirementIds = event.payload.requirementIds;
     if (
       !Array.isArray(requirementIds) ||
@@ -132,7 +149,7 @@ function targetFromEvent(event: DomainEvent): TriggerContext {
         diagnostic(
           "DOMAIN_EVENT_PAYLOAD_INVALID",
           "payload.requirementIds",
-          "Proposal event requirementIds must be a non-empty-string array.",
+          "Proposal event requirementIds must be an array of non-empty strings.",
         ),
       ]);
     }
@@ -147,12 +164,30 @@ function targetFromEvent(event: DomainEvent): TriggerContext {
   }
 
   const testRunId = event.payload.testRunId;
-  if (typeof testRunId !== "string" || testRunId.length === 0) {
+  if (!isKebabCaseId(testRunId)) {
     throw new WorkflowFailure([
       diagnostic(
         "DOMAIN_EVENT_PAYLOAD_INVALID",
         "payload.testRunId",
         "Evidence event testRunId is required.",
+      ),
+    ]);
+  }
+  if (!isSha256Revision(event.payload.evidenceRevision)) {
+    throw new WorkflowFailure([
+      diagnostic(
+        "DOMAIN_EVENT_PAYLOAD_INVALID",
+        "payload.evidenceRevision",
+        "Evidence event evidenceRevision must be a lowercase SHA-256 revision.",
+      ),
+    ]);
+  }
+  if (!isKebabCaseId(event.payload.evidenceId)) {
+    throw new WorkflowFailure([
+      diagnostic(
+        "DOMAIN_EVENT_PAYLOAD_INVALID",
+        "payload.evidenceId",
+        "Evidence event evidenceId must use kebab-case.",
       ),
     ]);
   }
@@ -166,11 +201,7 @@ function targetFromEvent(event: DomainEvent): TriggerContext {
 function isQualityTarget(value: unknown): value is QualityTarget {
   if (!isRecord(value) || typeof value.type !== "string") return false;
   if (value.type === "project") return Object.keys(value).length === 1;
-  return (
-    (value.type === "requirement" || value.type === "test-run") &&
-    typeof value.id === "string" &&
-    value.id.length > 0
-  );
+  return (value.type === "requirement" || value.type === "test-run") && isKebabCaseId(value.id);
 }
 
 function stepPayload(step: RuntimeWorkflowStep | undefined): Record<string, unknown> | undefined {
@@ -362,16 +393,29 @@ export class SqliteQualityEngineeringWorkflow implements QualityEngineeringWorkf
         evidenceIntegrity: integrity.diagnostics,
       });
       const previousSteps = this.runtimeStore.listWorkflowSteps(workflowRunId!);
+      const plannedStep = previousSteps.find((step) => step.key === "artifacts-planned");
       const assessmentId =
+        valueFromStep(plannedStep, "assessmentId") ??
         valueFromStep(
           previousSteps.find((step) => step.key === "assessment-created"),
           "assessmentId",
-        ) ?? this.idFactory();
+        ) ??
+        this.idFactory();
       const gateId =
+        valueFromStep(plannedStep, "gateId") ??
         valueFromStep(
           previousSteps.find((step) => step.key === "gate-evaluated"),
           "gateId",
-        ) ?? this.idFactory();
+        ) ??
+        this.idFactory();
+      if (!plannedStep) {
+        this.runtimeStore.appendWorkflowStep({
+          workflowRunId: workflowRunId!,
+          key: "artifacts-planned",
+          status: "completed",
+          payload: { assessmentId, gateId },
+        });
+      }
       const assessment = createQualityAssessment({
         id: assessmentId,
         target: context.target,
@@ -422,6 +466,7 @@ export class SqliteQualityEngineeringWorkflow implements QualityEngineeringWorkf
         occurredAt: assessment.createdAt,
         source: "workflow",
         payload: {
+          projectRoot: context.projectRoot,
           assessmentId: assessment.id,
           target: assessment.target,
           verdict: assessment.verdict,
@@ -435,7 +480,12 @@ export class SqliteQualityEngineeringWorkflow implements QualityEngineeringWorkf
         aggregateId: gate.id,
         occurredAt: gate.evaluatedAt,
         source: "workflow",
-        payload: { gateId: gate.id, assessmentId: gate.assessmentId, outcome: gate.outcome },
+        payload: {
+          projectRoot: context.projectRoot,
+          gateId: gate.id,
+          assessmentId: gate.assessmentId,
+          outcome: gate.outcome,
+        },
       });
       this.runtimeStore.markDomainEventProcessed(event.id, this.clock());
       this.runtimeStore.updateWorkflowRun(workflowRunId!, {

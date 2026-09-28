@@ -108,4 +108,30 @@ describe("QualityEngineeringPanel", () => {
     });
     expect(screen.queryByRole("button", { name: "自动批准" })).toBeNull();
   });
+
+  it("localizes missing assessment references", () => {
+    render(
+      <QualityEngineeringPanel
+        locale="zh-CN"
+        state={{
+          ...baseState,
+          qualityEngineering: {
+            ...baseState.qualityEngineering!,
+            assessments: [
+              {
+                ...baseState.qualityEngineering!.assessments[0]!,
+                reasonCodes: [],
+                evidenceIds: [],
+              },
+            ],
+          },
+        }}
+        t={(key) => translate("zh-CN", key)}
+        onEvaluate={vi.fn()}
+        onDecision={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText(/暂无/)).toHaveLength(2);
+  });
 });

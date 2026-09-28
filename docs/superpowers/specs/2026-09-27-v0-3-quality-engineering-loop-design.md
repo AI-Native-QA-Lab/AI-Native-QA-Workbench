@@ -299,12 +299,14 @@ type EvidenceImportedPayload = {
 };
 
 type AssessmentCreatedPayload = {
+  projectRoot: string;
   assessmentId: string;
   target: QualityTarget;
   verdict: AssessmentVerdict;
 };
 
 type GateEvaluatedPayload = {
+  projectRoot: string;
   gateId: string;
   assessmentId: string;
   outcome: QualityGateOutcome;
@@ -474,7 +476,7 @@ qaw quality decide <gate-id> --decision approve|reject|waive \
 
 - `quality validate` 检查 v0.3 file contract 和跨文件引用；
 - `quality evaluate` 为指定目标发布/处理一次本地评估事件；
-- `quality process` 处理 Runtime Store 中仍 pending 的事件；
+- `quality process` 处理 Runtime Store 中仍 pending 或 failed 的事件；
 - `quality decide` 只能通过 HumanDecisionService 写入人类决策；
 - CLI 永远不提供 `--ai-approve`、`--trusted` 或隐藏 reviewer 参数。
 

@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   RuleBasedQualityAssessmentProvider,
@@ -260,21 +260,54 @@ describe("SqliteQualityEngineeringWorkflow", () => {
     expect(first).toMatchObject({ status: "failed", processed: false });
     expect(fixture.runtimeStore.getDomainEvent(event.id)).toMatchObject({ status: "failed" });
 
-    const retried = await workflow(fixture, { qualityEngineeringStore: flakyStore }).dispatch(
-      event,
-    );
+    const retried = (
+      await workflow(fixture, { qualityEngineeringStore: flakyStore }).processPending({
+        projectRoot: fixture.directory,
+      })
+    )[0];
     expect(retried).toMatchObject({
       status: "processed",
       processed: true,
       workflowRunId: first.workflowRunId,
     });
     expect(fixture.runtimeStore.getDomainEvent(event.id)).toMatchObject({ status: "processed" });
+    expect(
+      fixture.runtimeStore.findWorkflowRun({
+        triggerEventId: event.id,
+        kind: "quality-engineering",
+      }),
+    ).not.toHaveProperty("error");
+  });
+
+  it("reuses planned IDs when a write succeeds before the workflow step is recorded", async () => {
+    const fixture = await createFixture();
+    const event = requestedEvent(fixture.directory, "event-quality-assessment-requested-crash-001");
+    const appendStep = vi.spyOn(fixture.runtimeStore, "appendWorkflowStep");
+    let failOnce = true;
+    appendStep.mockImplementation((input) => {
+      if (input.key === "assessment-created" && failOnce) {
+        failOnce = false;
+        throw new Error("injected step persistence failure");
+      }
+      return SqliteRuntimeStore.prototype.appendWorkflowStep.call(fixture.runtimeStore, input);
+    });
+
+    const first = await workflow(fixture).dispatch(event);
+    const second = await workflow(fixture).dispatch(event);
+    const snapshot = await fixture.qualityEngineeringStore.readQualityEngineering(
+      fixture.directory,
+    );
+
+    expect(first.status).toBe("failed");
+    expect(second).toMatchObject({ status: "processed", processed: true });
+    expect(snapshot.qualityEngineering?.assessments).toHaveLength(1);
+    expect(snapshot.qualityEngineering?.gates).toHaveLength(1);
   });
 
   it.each([
     [
       "quality.proposal.applied",
-      { requirementIds: ["checkout"] },
+      { qualityRevision: "a".repeat(64), requirementIds: ["checkout"] },
       { type: "requirement", id: "checkout" },
     ],
     [
@@ -306,6 +339,41 @@ describe("SqliteQualityEngineeringWorkflow", () => {
 
     expect(result.status).toBe("processed");
     expect(snapshot.qualityEngineering?.assessments[0]?.target).toEqual(target);
+  });
+
+  it.each([
+    [
+      "quality.proposal.applied",
+      { qualityRevision: "invalid", requirementIds: ["checkout"] },
+      "payload.qualityRevision",
+    ],
+    [
+      "evidence.imported",
+      { evidenceRevision: "invalid", testRunId: "run-checkout", evidenceId: "evidence-checkout" },
+      "payload.evidenceRevision",
+    ],
+    [
+      "evidence.imported",
+      { evidenceRevision: "a".repeat(64), testRunId: "run-checkout" },
+      "payload.evidenceId",
+    ],
+  ] as const)("rejects incomplete %s trigger payloads", async (type, payload, path) => {
+    const fixture = await createFixture();
+    const event: DomainEvent = {
+      id: `event-invalid-${type.replaceAll(".", "-")}-one`,
+      schemaVersion: "0.3",
+      type,
+      aggregateType: type === "evidence.imported" ? "evidence" : "quality",
+      aggregateId: "checkout",
+      occurredAt: "2026-09-27T08:10:00Z",
+      source: "application",
+      payload: { projectRoot: fixture.directory, ...payload },
+    } as DomainEvent;
+
+    const result = await workflow(fixture).dispatch(event);
+
+    expect(result).toMatchObject({ status: "failed", processed: false });
+    expect(result.diagnostics).toContainEqual(expect.objectContaining({ path }));
   });
 
   it("persists audit-only events without starting an assessment workflow", async () => {

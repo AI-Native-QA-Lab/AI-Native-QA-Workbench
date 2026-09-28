@@ -1,5 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import {
@@ -12,6 +11,7 @@ import {
 
 import { FileEvidenceStore } from "./evidence-store.js";
 import { FileProjectStore } from "./file-project-store.js";
+import { currentRevision, revisionFor, writeRevisionedFile } from "./revisioned-file.js";
 import {
   parseQualityEngineeringFile,
   serializeQualityEngineeringSnapshot,
@@ -37,21 +37,8 @@ function diagnostic(code: StoreDiagnostic["code"], path: string, message: string
   return { code, message, path, severity: "error" };
 }
 
-function revisionFor(contents: Uint8Array): string {
-  return createHash("sha256").update(contents).digest("hex");
-}
-
 function isCode(error: unknown, code: string): boolean {
   return error instanceof Error && "code" in error && error.code === code;
-}
-
-async function currentRevision(path: string): Promise<string | null> {
-  try {
-    return revisionFor(await readFile(path));
-  } catch (error) {
-    if (isCode(error, "ENOENT")) return null;
-    throw error;
-  }
 }
 
 function emptySnapshot(): QualityEngineeringSnapshot {
@@ -77,6 +64,45 @@ function withDiagnostics(
     revision: current.revision,
     diagnostics,
   };
+}
+
+async function validateCrossFileReferences(
+  rootDirectory: string,
+  snapshot: QualityEngineeringSnapshot,
+  projectStore: ProjectStore,
+  evidenceStore: EvidenceStore,
+): Promise<readonly StoreDiagnostic[]> {
+  const [quality, evidence] = await Promise.all([
+    projectStore.validateQuality(rootDirectory),
+    evidenceStore.validateEvidence(rootDirectory),
+  ]);
+  const diagnostics: StoreDiagnostic[] = [];
+  if (!quality.valid || !quality.projectQuality) diagnostics.push(...quality.diagnostics);
+  if (!evidence.valid || !evidence.evidence) diagnostics.push(...evidence.diagnostics);
+  if (diagnostics.length > 0) return diagnostics;
+
+  snapshot.assessments.forEach((assessment, index) => {
+    for (const evidenceId of assessment.evidenceIds) {
+      if (!evidence.evidence!.evidenceRecords.some((record) => record.id === evidenceId)) {
+        diagnostics.push(
+          diagnostic(
+            "QUALITY_ENGINEERING_EVIDENCE_NOT_FOUND",
+            `qualityEngineering.assessments[${index}].evidenceIds`,
+            `Referenced Evidence does not exist: ${evidenceId}`,
+          ),
+        );
+      }
+    }
+    const targetDiagnostic = targetReferenceDiagnostic(
+      assessment.target,
+      index,
+      quality,
+      evidence.evidence,
+    );
+    if (targetDiagnostic) diagnostics.push(targetDiagnostic);
+  });
+
+  return diagnostics;
 }
 
 function targetReferenceDiagnostic(
@@ -134,37 +160,12 @@ export class FileQualityEngineeringStore implements QualityEngineeringStore {
     const current = await this.readQualityEngineering(rootDirectory);
     if (!current.valid || !current.qualityEngineering) return current;
 
-    const [quality, evidence] = await Promise.all([
-      this.projectStore.validateQuality(rootDirectory),
-      this.evidenceStore.validateEvidence(rootDirectory),
-    ]);
-    const diagnostics: StoreDiagnostic[] = [];
-    if (!quality.valid || !quality.projectQuality) diagnostics.push(...quality.diagnostics);
-    if (!evidence.valid || !evidence.evidence) diagnostics.push(...evidence.diagnostics);
-    if (diagnostics.length > 0) return withDiagnostics(current, diagnostics);
-
-    const snapshot = current.qualityEngineering;
-    snapshot.assessments.forEach((assessment, index) => {
-      for (const evidenceId of assessment.evidenceIds) {
-        if (!evidence.evidence!.evidenceRecords.some((record) => record.id === evidenceId)) {
-          diagnostics.push(
-            diagnostic(
-              "QUALITY_ENGINEERING_EVIDENCE_NOT_FOUND",
-              `qualityEngineering.assessments[${index}].evidenceIds`,
-              `Referenced Evidence does not exist: ${evidenceId}`,
-            ),
-          );
-        }
-      }
-      const targetDiagnostic = targetReferenceDiagnostic(
-        assessment.target,
-        index,
-        quality,
-        evidence.evidence,
-      );
-      if (targetDiagnostic) diagnostics.push(targetDiagnostic);
-    });
-
+    const diagnostics = await validateCrossFileReferences(
+      rootDirectory,
+      current.qualityEngineering,
+      this.projectStore,
+      this.evidenceStore,
+    );
     return withDiagnostics(current, diagnostics);
   }
 
@@ -184,10 +185,6 @@ export class FileQualityEngineeringStore implements QualityEngineeringStore {
       return { written: false, qualityEngineeringPath: path, diagnostics: validation.diagnostics };
     }
 
-    const contents = serializeQualityEngineeringSnapshot(snapshot);
-    const directory = join(resolve(rootDirectory), ".ai-qa");
-    await mkdir(directory, { recursive: true });
-
     const current = await currentRevision(path);
     if (current !== expectedRevision) {
       return {
@@ -203,34 +200,43 @@ export class FileQualityEngineeringStore implements QualityEngineeringStore {
       };
     }
 
-    const temporaryPath = `${path}.${randomUUID()}.tmp`;
-    let renamed = false;
-    try {
-      await writeFile(temporaryPath, contents, "utf8");
-      const beforeRename = await currentRevision(path);
-      if (beforeRename !== expectedRevision) {
-        return {
-          written: false,
-          qualityEngineeringPath: path,
-          diagnostics: [
-            diagnostic(
-              "QUALITY_ENGINEERING_REVISION_CONFLICT",
-              QUALITY_ENGINEERING_FILE_RELATIVE_PATH,
-              "Quality engineering file changed before the atomic write.",
-            ),
-          ],
-        };
-      }
-      await rename(temporaryPath, path);
-      renamed = true;
-    } finally {
-      if (!renamed) await rm(temporaryPath, { force: true }).catch(() => undefined);
+    const crossFileDiagnostics = await validateCrossFileReferences(
+      rootDirectory,
+      snapshot,
+      this.projectStore,
+      this.evidenceStore,
+    );
+    if (crossFileDiagnostics.length > 0) {
+      return {
+        written: false,
+        qualityEngineeringPath: path,
+        diagnostics: crossFileDiagnostics,
+      };
+    }
+
+    const contents = serializeQualityEngineeringSnapshot(snapshot);
+    const directory = join(resolve(rootDirectory), ".ai-qa");
+    await mkdir(directory, { recursive: true });
+
+    const written = await writeRevisionedFile(path, contents, expectedRevision);
+    if (!written.written) {
+      return {
+        written: false,
+        qualityEngineeringPath: path,
+        diagnostics: [
+          diagnostic(
+            "QUALITY_ENGINEERING_REVISION_CONFLICT",
+            QUALITY_ENGINEERING_FILE_RELATIVE_PATH,
+            "Quality engineering file revision does not match the expected revision.",
+          ),
+        ],
+      };
     }
 
     return {
       written: true,
       qualityEngineeringPath: path,
-      revision: revisionFor(Buffer.from(contents, "utf8")),
+      revision: written.revision,
       diagnostics: [],
     };
   }

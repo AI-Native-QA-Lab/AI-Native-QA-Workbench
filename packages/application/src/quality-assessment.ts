@@ -38,9 +38,19 @@ const integrityFailureCodes = new Set([
 ]);
 
 function evidenceIdsForTarget(input: QualityAssessmentInput): string[] {
-  return input.evidence.evidenceRecords
-    .filter((record) => input.target.type !== "test-run" || record.testRunId === input.target.id)
-    .map((record) => record.id);
+  return evidenceForTarget(input).evidenceRecords.map((record) => record.id);
+}
+
+function evidenceForTarget(input: QualityAssessmentInput): EvidenceSnapshot {
+  const target = input.target;
+  if (target.type !== "test-run") return input.evidence;
+  return {
+    ...input.evidence,
+    testRuns: input.evidence.testRuns.filter((testRun) => testRun.id === target.id),
+    evidenceRecords: input.evidence.evidenceRecords.filter(
+      (record) => record.testRunId === target.id,
+    ),
+  };
 }
 
 function draft(
@@ -79,14 +89,15 @@ export class RuleBasedQualityAssessmentProvider implements QualityAssessmentProv
       );
     }
 
-    if (input.evidence.testRuns.length === 0 || input.evidence.evidenceRecords.length === 0) {
+    const evidence = evidenceForTarget(input);
+    if (evidence.testRuns.length === 0 || evidence.evidenceRecords.length === 0) {
       return draft(input, "insufficient-evidence", "No execution evidence is available.", [
         "EVIDENCE_MISSING",
       ]);
     }
 
     if (
-      input.evidence.testRuns.some(
+      evidence.testRuns.some(
         (testRun) =>
           testRun.status === "error" || testRun.results.some((result) => result.status === "error"),
       )
@@ -95,7 +106,7 @@ export class RuleBasedQualityAssessmentProvider implements QualityAssessmentProv
     }
 
     if (
-      input.evidence.testRuns.some(
+      evidence.testRuns.some(
         (testRun) =>
           testRun.status === "failed" ||
           testRun.results.some((result) => result.status === "failed"),
@@ -105,7 +116,7 @@ export class RuleBasedQualityAssessmentProvider implements QualityAssessmentProv
     }
 
     if (
-      input.evidence.testRuns.some(
+      evidence.testRuns.some(
         (testRun) =>
           testRun.status === "incomplete" ||
           testRun.results.length === 0 ||
@@ -119,7 +130,7 @@ export class RuleBasedQualityAssessmentProvider implements QualityAssessmentProv
       ]);
     }
 
-    const allResultsPassed = input.evidence.testRuns.every(
+    const allResultsPassed = evidence.testRuns.every(
       (testRun) =>
         testRun.status === "passed" &&
         testRun.results.every((result) => result.status === "passed"),
@@ -130,7 +141,7 @@ export class RuleBasedQualityAssessmentProvider implements QualityAssessmentProv
       ]);
     }
 
-    if (input.evidence.evidenceRecords.some((record) => record.provenance.trust === "unverified")) {
+    if (evidence.evidenceRecords.some((record) => record.provenance.trust === "unverified")) {
       return draft(input, "warn", "Execution evidence passed but remains unverified.", [
         "EVIDENCE_UNVERIFIED",
       ]);

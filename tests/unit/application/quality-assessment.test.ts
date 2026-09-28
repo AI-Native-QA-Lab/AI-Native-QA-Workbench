@@ -172,4 +172,41 @@ describe("RuleBasedQualityAssessmentProvider", () => {
     expect(result.evidenceIds).toEqual(["evidence-checkout"]);
     expect(request).toEqual(before);
   });
+
+  it("scopes TestRun assessment rules and evidence references to the requested run", async () => {
+    const provider = new RuleBasedQualityAssessmentProvider();
+    const evidence = evidenceSnapshot();
+    evidence.testRuns.push({
+      id: "run-other",
+      format: "junit",
+      status: "failed",
+      results: [{ name: "other fails", status: "failed" }],
+    });
+    evidence.evidenceRecords.push({
+      id: "evidence-other",
+      testRunId: "run-other",
+      kind: "test-result",
+      artifact: {
+        id: "artifact-other",
+        relativePath: "other.xml",
+        mediaType: "application/xml",
+        sizeBytes: 1,
+        sha256: "b".repeat(64),
+      },
+      provenance: {
+        sourceFormat: "junit",
+        sourceFileName: "other.xml",
+        importedAt: "2026-09-27T08:00:00Z",
+        trust: "trusted",
+      },
+    });
+
+    await expect(
+      provider.assess(input({ target: { type: "test-run", id: "run-checkout" }, evidence })),
+    ).resolves.toMatchObject({
+      verdict: "pass",
+      reasonCodes: ["EVIDENCE_VERIFIED"],
+      evidenceIds: ["evidence-checkout"],
+    });
+  });
 });

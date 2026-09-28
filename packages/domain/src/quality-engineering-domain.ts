@@ -641,7 +641,7 @@ export function resolveQualityGateStatus(
     .filter((decision) => decision.gateId === gate.id)
     .slice()
     .sort((left, right) => {
-      const timeOrder = left.decidedAt.localeCompare(right.decidedAt);
+      const timeOrder = Date.parse(left.decidedAt) - Date.parse(right.decidedAt);
       return timeOrder === 0 ? left.id.localeCompare(right.id) : timeOrder;
     })
     .at(-1);

@@ -59,8 +59,8 @@ provider, or UI access.
 | `quality.assessment.requested` | `application` | `project` | `projectRoot`, `target`, `gateKind` | Starts an explicit project, Requirement, or TestRun assessment. |
 | `quality.proposal.applied` | `application` | `quality` | `projectRoot`, `qualityRevision`, `requirementIds` | Re-evaluates the affected quality target. |
 | `evidence.imported` | `application` | `evidence` | `projectRoot`, `evidenceRevision`, `testRunId`, `evidenceId` | Evaluates the imported TestRun. |
-| `quality.assessment.created` | `workflow` | `assessment` | `assessmentId`, `target`, `verdict` | Audit event emitted after an Assessment is persisted. |
-| `quality.gate.evaluated` | `workflow` | `gate` | `gateId`, `assessmentId`, `outcome` | Audit event emitted after a Gate is persisted. |
+| `quality.assessment.created` | `workflow` | `assessment` | `projectRoot`, `assessmentId`, `target`, `verdict` | Audit event emitted after an Assessment is persisted. |
+| `quality.gate.evaluated` | `workflow` | `gate` | `projectRoot`, `gateId`, `assessmentId`, `outcome` | Audit event emitted after a Gate is persisted. |
 | `quality.human-decision.recorded` | `human` | `gate` | `projectRoot`, `gateId`, `decisionId`, `decision`, `reviewer` | Audit event emitted after a human decision is persisted. |
 
 The event validator checks the envelope and JSON safety, not the business

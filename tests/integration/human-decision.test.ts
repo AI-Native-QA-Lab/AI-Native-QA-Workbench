@@ -182,6 +182,50 @@ describe("FileHumanDecisionService integration", () => {
     expect(after.qualityEngineering?.humanDecisions).toHaveLength(0);
   });
 
+  it("retries publication for an already-written decision without appending a duplicate", async () => {
+    const fixture = await createFixture();
+    let failOnce = true;
+    const publisherEvents: Parameters<DomainEventPublisher["publish"]>[0][] = [];
+    const publisher: DomainEventPublisher = {
+      publish: async (event) => {
+        if (failOnce) {
+          failOnce = false;
+          throw new Error("injected publication failure");
+        }
+        publisherEvents.push(event);
+      },
+    };
+    const service = new FileHumanDecisionService({
+      projectStore: new FileProjectStore(),
+      evidenceStore: new FileEvidenceStore(),
+      qualityEngineeringStore: fixture.qualityEngineeringStore,
+      publisher,
+      clock: () => "2026-09-27T08:02:00Z",
+      idFactory: () => "decision-release",
+    });
+    const before = await fixture.qualityEngineeringStore.readQualityEngineering(fixture.directory);
+    const input = {
+      rootDirectory: fixture.directory,
+      gateId: "gate-release",
+      decision: "approve" as const,
+      reviewer: "alice",
+      rationale: "I reviewed the warning and accept the current release risk.",
+      expectedRevision: before.revision,
+    };
+
+    const first = await service.record(input);
+    const second = await service.record({ ...input, expectedRevision: first.revision ?? null });
+    const after = await fixture.qualityEngineeringStore.readQualityEngineering(fixture.directory);
+
+    expect(first).toMatchObject({ written: true, decision: { id: "decision-release" } });
+    expect(first.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "QUALITY_ENGINEERING_WORKFLOW_FAILED" }),
+    );
+    expect(second).toMatchObject({ written: true, diagnostics: [] });
+    expect(after.qualityEngineering?.humanDecisions).toHaveLength(1);
+    expect(publisherEvents).toHaveLength(1);
+  });
+
   it("fails closed when the current quality-engineering file is malformed", async () => {
     const fixture = await createFixture();
     await mkdir(join(fixture.directory, ".ai-qa"), { recursive: true });

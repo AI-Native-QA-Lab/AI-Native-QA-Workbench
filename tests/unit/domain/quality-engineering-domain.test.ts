@@ -151,4 +151,23 @@ describe("quality engineering domain", () => {
       ]),
     ).toBe("waived");
   });
+
+  it("orders decisions by their instant rather than their timestamp spelling", () => {
+    const gate = validSnapshot().gates[0]!;
+
+    expect(
+      resolveQualityGateStatus(gate, [
+        decision({
+          id: "decision-early",
+          decision: "approve",
+          decidedAt: "2026-09-27T00:30:00+01:00",
+        }),
+        decision({
+          id: "decision-late",
+          decision: "reject",
+          decidedAt: "2026-09-26T23:45:00Z",
+        }),
+      ]),
+    ).toBe("rejected");
+  });
 });

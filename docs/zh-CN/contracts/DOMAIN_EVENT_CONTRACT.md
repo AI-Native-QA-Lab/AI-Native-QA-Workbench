@@ -56,8 +56,8 @@ null、数组和普通对象；函数、symbol、bigint、类实例、非有限�
 | `quality.assessment.requested` | `application` | `project` | `projectRoot`、`target`、`gateKind` | 启动显式的项目、Requirement 或 TestRun 评估。 |
 | `quality.proposal.applied` | `application` | `quality` | `projectRoot`、`qualityRevision`、`requirementIds` | 重新评估受影响的质量目标。 |
 | `evidence.imported` | `application` | `evidence` | `projectRoot`、`evidenceRevision`、`testRunId`、`evidenceId` | 评估导入的 TestRun。 |
-| `quality.assessment.created` | `workflow` | `assessment` | `assessmentId`、`target`、`verdict` | Assessment 成功持久化后的审计事件。 |
-| `quality.gate.evaluated` | `workflow` | `gate` | `gateId`、`assessmentId`、`outcome` | Gate 成功持久化后的审计事件。 |
+| `quality.assessment.created` | `workflow` | `assessment` | `projectRoot`、`assessmentId`、`target`、`verdict` | Assessment 成功持久化后的审计事件。 |
+| `quality.gate.evaluated` | `workflow` | `gate` | `projectRoot`、`gateId`、`assessmentId`、`outcome` | Gate 成功持久化后的审计事件。 |
 | `quality.human-decision.recorded` | `human` | `gate` | `projectRoot`、`gateId`、`decisionId`、`decision`、`reviewer` | 人类决策成功持久化后的审计事件。 |
 
 事件 validator 只校验 Envelope 和 JSON-safe，不解释未知 payload 的业务含义；

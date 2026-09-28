@@ -63,6 +63,10 @@ interface ProposeInput {
   outputLocale: ProjectLocale;
 }
 
+function diagnostic(code: StoreDiagnostic["code"], path: string, message: string): StoreDiagnostic {
+  return { code, path, message, severity: "error" };
+}
+
 export class QualityTaskLoop {
   private readonly store: ProjectStore;
   private readonly provider: RequirementAnalysisProvider;
@@ -130,6 +134,26 @@ export class QualityTaskLoop {
     if (!current.valid || !current.projectQuality) {
       throw new Error("Unable to load a valid project quality snapshot.");
     }
+    const events: QualityTaskEvent[] = [{ phase: "review" }];
+    if (input.proposal.status === "applied") {
+      const completion = completionFor(current.projectQuality, requirementIdFor(input.proposal));
+      const publicationDiagnostics = await this.publishProposalApplied(
+        input.rootDirectory,
+        current.revision ?? input.proposal.baseRevision,
+        input.proposal,
+        current.projectQuality,
+      );
+      events.push({ phase: "re-evaluate" });
+      events.push({ phase: completion.complete ? "complete" : "blocked" });
+      return {
+        phase: completion.complete ? "complete" : "blocked",
+        applied: true,
+        proposal: input.proposal,
+        completion,
+        events,
+        diagnostics: publicationDiagnostics,
+      };
+    }
     const reviewed = reviewProposal(input.proposal, {
       reviewer: input.reviewer,
       decision: input.decision,
@@ -137,7 +161,6 @@ export class QualityTaskLoop {
         ? { approvedOperationIndexes: input.approvedOperationIndexes }
         : {}),
     });
-    const events: QualityTaskEvent[] = [{ phase: "review" }];
     if (reviewed.status === "rejected") {
       return {
         phase: "review-rejected",
@@ -164,21 +187,12 @@ export class QualityTaskLoop {
     const reloaded = await this.store.readQuality(input.rootDirectory);
     const snapshot = reloaded.projectQuality ?? applied.snapshot;
     const completion = completionFor(snapshot, requirementIdFor(reviewed));
-    const requirementIds = requirementIdsFor(reviewed, current.projectQuality);
-    await this.publisher?.publish({
-      id: `event-quality-proposal-applied-${applied.revision ?? "unknown"}`,
-      schemaVersion: "0.3",
-      type: "quality.proposal.applied",
-      aggregateType: "quality",
-      aggregateId: requirementIds[0] ?? "project",
-      occurredAt: new Date().toISOString(),
-      source: "application",
-      payload: {
-        projectRoot: input.rootDirectory,
-        qualityRevision: applied.revision ?? reloaded.revision ?? "",
-        requirementIds,
-      },
-    });
+    const publicationDiagnostics = await this.publishProposalApplied(
+      input.rootDirectory,
+      applied.revision ?? reloaded.revision ?? "",
+      applied.proposal,
+      snapshot,
+    );
     events.push({ phase: completion.complete ? "complete" : "blocked" });
     return {
       phase: completion.complete ? "complete" : "blocked",
@@ -186,8 +200,41 @@ export class QualityTaskLoop {
       proposal: applied.proposal,
       completion,
       events,
-      diagnostics: [],
+      diagnostics: publicationDiagnostics,
     };
+  }
+
+  private async publishProposalApplied(
+    rootDirectory: string,
+    qualityRevision: string,
+    proposal: ChangeProposal,
+    snapshot: QualitySnapshot,
+  ): Promise<readonly StoreDiagnostic[]> {
+    try {
+      await this.publisher?.publish({
+        id: `event-quality-proposal-applied-${qualityRevision || "unknown"}`,
+        schemaVersion: "0.3",
+        type: "quality.proposal.applied",
+        aggregateType: "quality",
+        aggregateId: requirementIdsFor(proposal, snapshot)[0] ?? "project",
+        occurredAt: new Date().toISOString(),
+        source: "application",
+        payload: {
+          projectRoot: rootDirectory,
+          qualityRevision,
+          requirementIds: requirementIdsFor(proposal, snapshot),
+        },
+      });
+      return [];
+    } catch (error) {
+      return [
+        diagnostic(
+          "QUALITY_ENGINEERING_WORKFLOW_FAILED",
+          "event",
+          error instanceof Error ? error.message : String(error),
+        ),
+      ];
+    }
   }
 }
 

@@ -334,7 +334,7 @@ export class SqliteRuntimeStore implements RuntimeStore {
     const rows = this.database
       .prepare(
         `SELECT id FROM domain_events
-         WHERE project_root = ? AND status = 'pending'
+         WHERE project_root = ? AND status IN ('pending', 'failed')
          ORDER BY received_at, id`,
       )
       .all(projectRoot) as Array<{ id: string }>;
@@ -431,6 +431,16 @@ export class SqliteRuntimeStore implements RuntimeStore {
     id: string,
     input: { status: string; error?: string; completedAt?: string },
   ): void {
+    if (input.status === "completed") {
+      this.database
+        .prepare(
+          `UPDATE workflow_runs
+           SET status = ?, error = NULL, completed_at = COALESCE(?, completed_at)
+           WHERE id = ?`,
+        )
+        .run(input.status, input.completedAt ?? null, id);
+      return;
+    }
     this.database
       .prepare(
         `UPDATE workflow_runs

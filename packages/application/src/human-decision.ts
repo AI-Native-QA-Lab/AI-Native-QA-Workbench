@@ -173,6 +173,28 @@ export class FileHumanDecisionService implements HumanDecisionService {
       };
     }
 
+    const existing = current.humanDecisions.find(
+      (item) =>
+        item.gateId === gate.id &&
+        item.decision === input.decision &&
+        item.reviewer === input.reviewer &&
+        item.rationale === input.rationale,
+    );
+    if (existing) {
+      const result: HumanDecisionResult = {
+        written: true,
+        decision: existing,
+        qualityEngineering: current,
+        resolvedGateStatus: resolveQualityGateStatus(gate, current.humanDecisions),
+        ...(qualityEngineering.revision ? { revision: qualityEngineering.revision } : {}),
+        diagnostics: [],
+      };
+      return {
+        ...result,
+        diagnostics: await this.publishDecisionEvent(input.rootDirectory, gate.id, existing),
+      };
+    }
+
     const decision: HumanDecision = {
       id: this.idFactory(),
       gateId: gate.id,
@@ -201,36 +223,44 @@ export class FileHumanDecisionService implements HumanDecisionService {
       ...(write.revision ? { revision: write.revision } : {}),
       diagnostics: [],
     };
+    return {
+      ...result,
+      diagnostics: await this.publishDecisionEvent(input.rootDirectory, gate.id, decision),
+    };
+  }
+
+  private async publishDecisionEvent(
+    rootDirectory: string,
+    gateId: string,
+    decision: HumanDecision,
+  ): Promise<readonly StoreDiagnostic[]> {
     try {
       await this.publisher.publish({
         id: `event-quality-human-decision-recorded-${decision.id}`,
         schemaVersion: "0.3",
         type: "quality.human-decision.recorded",
         aggregateType: "gate",
-        aggregateId: gate.id,
+        aggregateId: gateId,
         occurredAt: decision.decidedAt,
         source: "human",
         payload: {
-          projectRoot: input.rootDirectory,
-          gateId: gate.id,
+          projectRoot: rootDirectory,
+          gateId,
           decisionId: decision.id,
           decision: decision.decision,
           reviewer: decision.reviewer,
         },
       });
+      return [];
     } catch (error) {
-      return {
-        ...result,
-        diagnostics: [
-          diagnostic(
-            "QUALITY_ENGINEERING_WORKFLOW_FAILED",
-            "event",
-            error instanceof Error ? error.message : String(error),
-          ),
-        ],
-      };
+      return [
+        diagnostic(
+          "QUALITY_ENGINEERING_WORKFLOW_FAILED",
+          "event",
+          error instanceof Error ? error.message : String(error),
+        ),
+      ];
     }
-    return result;
   }
 }
 

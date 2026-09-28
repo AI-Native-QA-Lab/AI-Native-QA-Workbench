@@ -213,33 +213,88 @@ describe("FileQualityEngineeringStore", () => {
 
     const missingEvidence = qualityEngineeringSnapshotWithReferences();
     missingEvidence.assessments[0]!.evidenceIds = ["evidence-missing"];
-    await store.writeQualityEngineering(directory, missingEvidence, valid.revision ?? null);
-    expect((await store.validateQualityEngineering(directory)).diagnostics).toContainEqual(
-      expect.objectContaining({ code: "QUALITY_ENGINEERING_EVIDENCE_NOT_FOUND" }),
+    const missingEvidenceWrite = await store.writeQualityEngineering(
+      directory,
+      missingEvidence,
+      valid.revision ?? null,
     );
+    expect(missingEvidenceWrite).toMatchObject({
+      written: false,
+      diagnostics: [expect.objectContaining({ code: "QUALITY_ENGINEERING_EVIDENCE_NOT_FOUND" })],
+    });
+    expect((await store.validateQualityEngineering(directory)).valid).toBe(true);
 
     const missingRequirement = qualityEngineeringSnapshotWithReferences();
     missingRequirement.assessments[0]!.target = { type: "requirement", id: "requirement-missing" };
     missingRequirement.gates[0]!.target = { type: "requirement", id: "requirement-missing" };
-    await store.writeQualityEngineering(
+    const missingRequirementWrite = await store.writeQualityEngineering(
       directory,
       missingRequirement,
-      (await store.readQualityEngineering(directory)).revision ?? null,
+      valid.revision ?? null,
     );
-    expect((await store.validateQualityEngineering(directory)).diagnostics).toContainEqual(
-      expect.objectContaining({ code: "QUALITY_ENGINEERING_REQUIREMENT_NOT_FOUND" }),
-    );
+    expect(missingRequirementWrite).toMatchObject({
+      written: false,
+      diagnostics: [expect.objectContaining({ code: "QUALITY_ENGINEERING_REQUIREMENT_NOT_FOUND" })],
+    });
+    expect((await store.validateQualityEngineering(directory)).valid).toBe(true);
 
     const missingTestRun = qualityEngineeringSnapshotWithReferences();
     missingTestRun.assessments[0]!.target = { type: "test-run", id: "run-missing" };
     missingTestRun.gates[0]!.target = { type: "test-run", id: "run-missing" };
-    await store.writeQualityEngineering(
+    const missingTestRunWrite = await store.writeQualityEngineering(
       directory,
       missingTestRun,
-      (await store.readQualityEngineering(directory)).revision ?? null,
+      valid.revision ?? null,
     );
-    expect((await store.validateQualityEngineering(directory)).diagnostics).toContainEqual(
-      expect.objectContaining({ code: "QUALITY_ENGINEERING_TEST_RUN_NOT_FOUND" }),
+    expect(missingTestRunWrite).toMatchObject({
+      written: false,
+      diagnostics: [expect.objectContaining({ code: "QUALITY_ENGINEERING_TEST_RUN_NOT_FOUND" })],
+    });
+    expect((await store.validateQualityEngineering(directory)).valid).toBe(true);
+  });
+
+  it("rejects one of two concurrent writes instead of overwriting it", async () => {
+    const directory = await createTemporaryDirectory();
+    await initializeProject(directory);
+    const store = new FileQualityEngineeringStore();
+    const first = await store.writeQualityEngineering(directory, emptySnapshot(), null);
+    const snapshot: QualityEngineeringSnapshot = {
+      ...emptySnapshot(),
+      assessments: [
+        {
+          id: "assessment-project",
+          target: { type: "project" },
+          verdict: "pass",
+          summary: "No execution evidence is required for this write-race test.",
+          reasonCodes: ["EVIDENCE_MISSING"],
+          evidenceIds: [],
+          source: "deterministic",
+          basedOnRevision: null,
+          createdAt: "2026-09-27T08:03:00Z",
+        },
+      ],
+      gates: [
+        {
+          id: "gate-project",
+          kind: "release-readiness",
+          target: { type: "project" },
+          assessmentId: "assessment-project",
+          outcome: "pass",
+          requiredHumanDecision: true,
+          evaluatedAt: "2026-09-27T08:04:00Z",
+        },
+      ],
+    };
+
+    const results = await Promise.all([
+      store.writeQualityEngineering(directory, snapshot, first.revision ?? null),
+      store.writeQualityEngineering(directory, emptySnapshot(), first.revision ?? null),
+    ]);
+
+    expect(results.filter((result) => result.written)).toHaveLength(1);
+    expect(results.filter((result) => !result.written)).toHaveLength(1);
+    expect(results.find((result) => !result.written)?.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "QUALITY_ENGINEERING_REVISION_CONFLICT" }),
     );
   });
 

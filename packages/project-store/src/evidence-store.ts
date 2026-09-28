@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
@@ -28,6 +28,7 @@ import {
   type StagedEvidenceArtifact,
   type StoreDiagnostic,
 } from "./types.js";
+import { revisionFor, writeRevisionedFile } from "./revisioned-file.js";
 
 function evidencePathFor(rootDirectory: string): string {
   return join(resolve(rootDirectory), EVIDENCE_FILE_RELATIVE_PATH);
@@ -39,10 +40,6 @@ function artifactRootFor(rootDirectory: string): string {
 
 function diagnostic(code: StoreDiagnostic["code"], path: string, message: string): StoreDiagnostic {
   return { code, message, path, severity: "error" };
-}
-
-function revisionFor(contents: Uint8Array): string {
-  return createHash("sha256").update(contents).digest("hex");
 }
 
 function isCode(error: unknown, code: string): boolean {
@@ -227,16 +224,6 @@ async function artifactDiagnostic(
   }
 
   return undefined;
-}
-
-async function currentRevision(path: string): Promise<string | null> {
-  try {
-    const contents = await readFile(path);
-    return revisionFor(contents);
-  } catch (error) {
-    if (isCode(error, "ENOENT")) return null;
-    throw error;
-  }
 }
 
 async function qualityFor(
@@ -474,8 +461,8 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
     const evidenceDirectory = join(resolve(rootDirectory), ".ai-qa");
     await ensureDirectory(evidenceDirectory, ".ai-qa", true);
 
-    const current = await currentRevision(evidencePath);
-    if (current !== expectedRevision) {
+    const written = await writeRevisionedFile(evidencePath, contents, expectedRevision);
+    if (!written.written) {
       return {
         written: false,
         evidencePath,
@@ -489,35 +476,10 @@ export class FileEvidenceStore implements EvidenceStore, EvidenceArtifactStore {
       };
     }
 
-    const temporaryPath = evidencePath + "." + randomUUID() + ".tmp";
-    let renamed = false;
-    try {
-      await writeFile(temporaryPath, contents, "utf8");
-      const beforeRename = await currentRevision(evidencePath);
-      if (beforeRename !== expectedRevision) {
-        return {
-          written: false,
-          evidencePath,
-          diagnostics: [
-            diagnostic(
-              "EVIDENCE_REVISION_CONFLICT",
-              EVIDENCE_FILE_RELATIVE_PATH,
-              "Evidence manifest changed before the atomic write.",
-            ),
-          ],
-        };
-      }
-
-      await rename(temporaryPath, evidencePath);
-      renamed = true;
-    } finally {
-      if (!renamed) await rm(temporaryPath, { force: true }).catch(() => undefined);
-    }
-
     return {
       written: true,
       evidencePath,
-      revision: revisionFor(Buffer.from(contents, "utf8")),
+      revision: written.revision,
       diagnostics: [],
     };
   }

@@ -104,4 +104,48 @@ describe("QualityTaskLoop", () => {
     expect(rejected.applied).toBe(false);
     expect(rejected.completion.complete).toBe(false);
   });
+
+  it("returns an applied proposal and retries its event publication without applying twice", async () => {
+    const directory = await createProject();
+    let failOnce = true;
+    const published: unknown[] = [];
+    const loop = new QualityTaskLoop({
+      store: new FileProjectStore(),
+      provider: createMockRequirementAnalysisProvider(),
+      publisher: {
+        publish: async (event) => {
+          if (failOnce) {
+            failOnce = false;
+            throw new Error("injected publication failure");
+          }
+          published.push(event);
+        },
+      },
+    });
+    const proposed = await loop.propose({
+      rootDirectory: directory,
+      requirementId: "checkout",
+      outputLocale: "en",
+    });
+
+    const first = await loop.decide({
+      rootDirectory: directory,
+      proposal: proposed.proposal,
+      reviewer: "nao",
+      decision: "approve",
+    });
+    const second = await loop.decide({
+      rootDirectory: directory,
+      proposal: first.proposal,
+      reviewer: "nao",
+      decision: "approve",
+    });
+
+    expect(first).toMatchObject({ applied: true, proposal: { status: "applied" } });
+    expect(first.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "QUALITY_ENGINEERING_WORKFLOW_FAILED" }),
+    );
+    expect(second).toMatchObject({ applied: true, phase: "complete", diagnostics: [] });
+    expect(published).toHaveLength(1);
+  });
 });
