@@ -10,12 +10,17 @@ const tsxEntry = fileURLToPath(new URL("../../node_modules/tsx/dist/cli.mjs", im
 const cliEntry = fileURLToPath(new URL("../../apps/cli/src/main.ts", import.meta.url));
 const fixturePath = new URL("../fixtures/evidence/junit-minimal.xml", import.meta.url);
 const temporaryDirectories: string[] = [];
+const CLI_INTEGRATION_TIMEOUT_MS = 15_000;
 
 function runCli(args: string[], cwd: string) {
   return spawnSync(process.execPath, [tsxEntry, "--conditions=development", cliEntry, ...args], {
     cwd,
     encoding: "utf8",
   });
+}
+
+function runCliTest(name: string, handler: () => Promise<void>) {
+  return it(name, handler, CLI_INTEGRATION_TIMEOUT_MS);
 }
 
 async function createProject(): Promise<string> {
@@ -36,36 +41,42 @@ afterEach(async () => {
 });
 
 describe("qaw evidence CLI", () => {
-  it("requires the evidence subcommand, report, format, and rejects --trusted", async () => {
-    const directory = await createProject();
+  runCliTest(
+    "requires the evidence subcommand, report, format, and rejects --trusted",
+    async () => {
+      const directory = await createProject();
 
-    const missingSubcommand = runCli(["evidence"], directory);
-    const missingReport = runCli(["evidence", "import", "--format", "junit"], directory);
-    const missingFormat = runCli(["evidence", "import", "report.xml"], directory);
-    const missingFormatValue = runCli(["evidence", "import", "report.xml", "--format"], directory);
-    const unsupportedFormat = runCli(
-      ["evidence", "import", "report.xml", "--format", "unknown"],
-      directory,
-    );
-    const trusted = runCli(
-      ["evidence", "import", "report.xml", "--format", "junit", "--trusted"],
-      directory,
-    );
+      const missingSubcommand = runCli(["evidence"], directory);
+      const missingReport = runCli(["evidence", "import", "--format", "junit"], directory);
+      const missingFormat = runCli(["evidence", "import", "report.xml"], directory);
+      const missingFormatValue = runCli(
+        ["evidence", "import", "report.xml", "--format"],
+        directory,
+      );
+      const unsupportedFormat = runCli(
+        ["evidence", "import", "report.xml", "--format", "unknown"],
+        directory,
+      );
+      const trusted = runCli(
+        ["evidence", "import", "report.xml", "--format", "junit", "--trusted"],
+        directory,
+      );
 
-    for (const result of [
-      missingSubcommand,
-      missingReport,
-      missingFormat,
-      missingFormatValue,
-      unsupportedFormat,
-      trusted,
-    ]) {
-      expect(result.status).toBe(2);
-      expect(result.stderr).toContain("Usage:");
-    }
-  });
+      for (const result of [
+        missingSubcommand,
+        missingReport,
+        missingFormat,
+        missingFormatValue,
+        unsupportedFormat,
+        trusted,
+      ]) {
+        expect(result.status).toBe(2);
+        expect(result.stderr).toContain("Usage:");
+      }
+    },
+  );
 
-  it("imports, reuses, validates metadata, and verifies artifact integrity", async () => {
+  runCliTest("imports, reuses, validates metadata, and verifies artifact integrity", async () => {
     const directory = await createProject();
 
     const imported = runCli(
